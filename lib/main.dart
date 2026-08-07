@@ -3,237 +3,114 @@ import 'database_helper.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Облік запчастин',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
-      home: const HomePage(),
-    );
-  }
+  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: HomePage(), theme: ThemeData(brightness: Brightness.dark, useMaterial3: true)));
 }
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> parts = [];
-
   @override
-  void initState() {
-    super.initState();
-    _refreshParts();
-  }
-
-  void _refreshParts() async {
-    final data = await DatabaseHelper.instance.fetchParts();
-    setState(() {
-      parts = data;
-    });
-  }
+  void initState() { super.initState(); _refresh(); }
+  void _refresh() async { final data = await DatabaseHelper.instance.fetchParts(); setState(() { parts = data; }); }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Склад запчастин'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: parts.isEmpty
-          ? const Center(
-              child: Text(
-                'Список порожній.\nДодайте першу деталь!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
-            )
-          : ListView.builder(
-              itemCount: parts.length,
-              itemBuilder: (context, index) {
-                final p = parts[index];
-                final String brand = p['brand'] ?? 'Універсальна';
-                final String model = p['carModel'] ?? '';
-                final bool isUniversal = brand == 'Універсальна';
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: ListTile(
-                    title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      'Арт: ${p['article'] == "" ? "Не вказано" : p['article']}\nКількість: ${p['quantity']}\nАвто: $brand $model'.trim(),
-                    ),
-                    leading: Icon(
-                      isUniversal ? Icons.build : Icons.directions_car,
-                      color: isUniversal ? Colors.grey : Colors.blue,
-                      size: 32,
-                    ),
-                    isThreeLine: true,
-                  ),
-                );
+      appBar: AppBar(title: const Text('Склад запчастин')),
+      body: ListView.builder(
+        itemCount: parts.length,
+        itemBuilder: (context, i) {
+          final p = parts[i];
+          return Card(
+            child: ListTile(
+              title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('Арт: ${p['article']}\nКількість: ${p['quantity']}\nАвто: ${p['brand']} ${p['carModel']}'),
+              onTap: () async {
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p)));
+                if (result == true) _refresh();
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final value = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddPartPage()),
           );
-
-          if (value != null && value is Map<String, dynamic>) {
-            await DatabaseHelper.instance.insertPart(value);
-            _refreshParts();
-          }
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (c) => const AddPartPage())); _refresh(); },
         child: const Icon(Icons.add),
       ),
     );
   }
 }
 
-// === КЛАС ДЛЯ ЕКРАНА ДОДАВАННЯ З ПОШУКОМ МАРКИ ===
 class AddPartPage extends StatefulWidget {
-  const AddPartPage({super.key});
-
+  final Map<String, dynamic>? part;
+  const AddPartPage({super.key, this.part});
   @override
   State<AddPartPage> createState() => _AddPartPageState();
 }
 
 class _AddPartPageState extends State<AddPartPage> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _articleController = TextEditingController();
-  final TextEditingController _quantityController = TextEditingController(text: '1');
-  final TextEditingController _modelController = TextEditingController();
-  
-  String _selectedBrand = 'Універсальна';
+  final _name = TextEditingController();
+  final _art = TextEditingController();
+  final _qty = TextEditingController(text: '1');
+  final _model = TextEditingController();
+  String _brand = '';
+  final List<String> _brands = ['Універсальна', 'Alfa Romeo', 'Audi', 'BMW', 'Case IH', 'Caterpillar', 'Chevrolet', 'Chrysler', 'Citroën', 'CLAAS', 'Dacia', 'DAF', 'Dodge', 'FAW', 'Fendt', 'Fiat', 'Ford', 'Foton', 'GAZ (ГАЗ)', 'GMC', 'Great Wall', 'Honda', 'Hyundai', 'Infiniti', 'Isuzu', 'IVECO', 'JCB', 'Jeep', 'John Deere', 'KAMAZ (КАМАЗ)', 'Kia', 'KRAZ (КрАЗ)', 'Lada / ВАЗ', 'Lancia', 'Land Rover', 'Lexus', 'MAN', 'MAZ (МАЗ)', 'Mazda', 'Mercedes-Benz', 'MINI', 'Mitsubishi', 'MTZ (МТЗ)', 'New Holland', 'Nissan', 'Opel', 'Peugeot', 'Porsche', 'Renault', 'Scania', 'SEAT', 'Skoda', 'Smart', 'SsangYong', 'Subaru', 'Suzuki', 'Tatra', 'Toyota', 'UMZ (ЮМЗ)', 'Volkswagen', 'Volvo', 'XTZ (ХТЗ)', 'YTO', 'ZAZ (ЗАЗ)'];
 
-  // Повний алфавітний каталог марок (легкові, вантажні, сільгосптехніка)
-  final List<String> _brands = [
-    'Універсальна',
-    'Alfa Romeo', 'Audi', 'BMW', 'Case IH', 'Caterpillar', 'Chevrolet', 'Chrysler',
-    'Citroën', 'CLAAS', 'Dacia', 'DAF', 'Dodge', 'FAW', 'Fendt', 'Fiat', 'Ford',
-    'Foton', 'GAZ (ГАЗ)', 'GMC', 'Great Wall', 'Honda', 'Hyundai', 'Infiniti',
-    'Isuzu', 'IVECO', 'JCB', 'Jeep', 'John Deere', 'KAMAZ (КАМАЗ)', 'Kia',
-    'KRAZ (КрАЗ)', 'Lada / ВАЗ', 'Lancia', 'Land Rover', 'Lexus', 'MAN',
-    'MAZ (МАЗ)', 'Mazda', 'Mercedes-Benz', 'MINI', 'Mitsubishi', 'MTZ (МТЗ)',
-    'New Holland', 'Nissan', 'Opel', 'Peugeot', 'Porsche', 'Renault', 'Scania',
-    'SEAT', 'Skoda', 'Smart', 'SsangYong', 'Subaru', 'Suzuki', 'Tatra', 'Toyota',
-    'UMZ (ЮМЗ)', 'Volkswagen', 'Volvo', 'XTZ (ХТЗ)', 'YTO', 'ZAZ (ЗАЗ)'
-  ];
+  @override
+  void initState() {
+    super.initState();
+    if (widget.part != null) {
+      _name.text = widget.part!['name'];
+      _art.text = widget.part!['article'];
+      _qty.text = widget.part!['quantity'].toString();
+      _model.text = widget.part!['carModel'];
+      _brand = widget.part!['brand'];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Додати запчастину')),
+      appBar: AppBar(title: Text(widget.part == null ? 'Додати' : 'Редагувати')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Назва запчастини (обов\'язково)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _articleController,
-              decoration: const InputDecoration(
-                labelText: 'Артикул / Код',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _quantityController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Кількість',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-
-            // РОЗШИРЕНЕ ПОЛЕ ВВОДУ З ПОШУКОМ МАРКИ
+            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Назва', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: _art, decoration: const InputDecoration(labelText: 'Артикул', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: _qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
             Autocomplete<String>(
-              initialValue: TextEditingValue(text: _selectedBrand),
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                if (textEditingValue.text.isEmpty) {
-                  return _brands;
-                }
-                return _brands.where((String brand) {
-                  return brand.toLowerCase().contains(textEditingValue.text.toLowerCase());
-                });
-              },
-              onSelected: (String selection) {
-                setState(() {
-                  _selectedBrand = selection;
-                });
-              },
-              fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                return TextField(
-                  controller: textEditingController,
-                  focusNode: focusNode,
-                  decoration: const InputDecoration(
-                    labelText: 'Марка авто / техніки (пошук)',
-                    hintText: 'Почніть вводити (напр. Op, Mer, МТЗ)',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.search),
-                  ),
-                  onChanged: (value) {
-                    _selectedBrand = value;
-                  },
-                );
+              optionsBuilder: (v) => v.text.isEmpty ? _brands : _brands.where((b) => b.toLowerCase().contains(v.text.toLowerCase())),
+              onSelected: (s) => setState(() => _brand = s),
+              fieldViewBuilder: (c, ctrl, fn, onS) {
+                if (ctrl.text.isEmpty && _brand.isNotEmpty) ctrl.text = _brand;
+                return TextField(controller: ctrl, focusNode: fn, decoration: const InputDecoration(labelText: 'Марка авто', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)), onChanged: (v) => _brand = v);
               },
             ),
-
-            const SizedBox(height: 15),
-            TextField(
-              controller: _modelController,
-              decoration: const InputDecoration(
-                labelText: 'Модель (наприклад, Zafira B, Sprinter 316, 82.1)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 10),
+            TextField(controller: _model, decoration: const InputDecoration(labelText: 'Модель', border: OutlineInputBorder())),
+            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                if (_nameController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Введіть назву запчастини!')),
-                  );
-                  return;
-                }
-
-                final newPart = {
-                  'name': _nameController.text.trim(),
-                  'article': _articleController.text.trim(),
-                  'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
-                  'brand': _selectedBrand.trim().isEmpty ? 'Універсальна' : _selectedBrand.trim(),
-                  'carModel': _modelController.text.trim(),
-                };
-
-                Navigator.pop(context, newPart);
+              onPressed: () async {
+                final data = {'name': _name.text, 'article': _art.text, 'quantity': int.tryParse(_qty.text) ?? 1, 'brand': _brand.isEmpty ? 'Універсальна' : _brand, 'carModel': _model.text};
+                if (widget.part == null) await DatabaseHelper.instance.insertPart(data);
+                else { data['id'] = widget.part!['id']; await DatabaseHelper.instance.updatePart(data); }
+                if (mounted) Navigator.pop(context, true);
               },
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: const Text('Зберегти', style: TextStyle(fontSize: 16)),
+              child: const Text('Зберегти'),
             ),
+            if (widget.part != null) ...[
+              const SizedBox(height: 10),
+              ElevatedButton(onPressed: () async { await DatabaseHelper.instance.deletePart(widget.part!['id']); if (mounted) Navigator.pop(context, true); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Видалити')),
+            ]
           ],
         ),
       ),
