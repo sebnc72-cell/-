@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
 
+// Список категорій вузлів
+final List<String> _categoriesList = [
+  'Загальне',
+  'Двигун',
+  'Підвіска та ходова',
+  'Гальмівна система',
+  'Фільтри та розхідники',
+  'Електрика',
+  'Трансмісія та КПП',
+  'Мастила та рідини',
+  'Кузов та оптика',
+  'Інструменти та обладнання'
+];
+
 // Розширений словник марок та суворих моделей
 final Map<String, List<String>> _modelsByBrand = {
   'Універсальна': ['Всі моделі', 'Різне', 'Мастила та рідини', 'Розхідники'],
@@ -118,20 +132,46 @@ class _HomePageState extends State<HomePage> {
           (p['name'] ?? '').toString().toLowerCase().contains(q) ||
           (p['article'] ?? '').toString().toLowerCase().contains(q) ||
           (p['brand'] ?? '').toString().toLowerCase().contains(q) ||
-          (p['carModel'] ?? '').toString().toLowerCase().contains(q)).toList();
+          (p['carModel'] ?? '').toString().toLowerCase().contains(q) ||
+          (p['category'] ?? '').toString().toLowerCase().contains(q)).toList();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Рахуємо загальну вартість складу
+    double totalInventoryCost = 0;
+    for (var p in allParts) {
+      final qty = (p['quantity'] as num?)?.toDouble() ?? 0;
+      final price = (p['price'] as num?)?.toDouble() ?? 0;
+      totalInventoryCost += qty * price;
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Склад запчастин')),
+      appBar: AppBar(
+        title: const Text('Склад запчастин'),
+        actions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: Text(
+                'Сума: ${totalInventoryCost.toStringAsFixed(0)} грн',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent, fontSize: 15),
+              ),
+            ),
+          )
+        ],
+      ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
-              decoration: const InputDecoration(labelText: 'Пошук (назва, арт, марка, модель)', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: 'Пошук (назва, арт, марка, модель, категорія)', 
+                prefixIcon: Icon(Icons.search), 
+                border: OutlineInputBorder()
+              ),
               onChanged: (v) { setState(() { searchQuery = v; _applySearch(); }); },
             ),
           ),
@@ -142,12 +182,38 @@ class _HomePageState extends State<HomePage> {
                 final p = filteredParts[i];
                 final brand = p['brand'] ?? 'Універсальна';
                 final isUni = brand == 'Універсальна';
+                final category = p['category'] ?? 'Загальне';
+                final qty = p['quantity'] ?? 1;
+                final minQty = p['minQuantity'] ?? 0;
+                final price = (p['price'] as num?)?.toDouble() ?? 0.0;
+                final isLowStock = qty <= minQty;
+
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: isLowStock ? Colors.redAccent : Colors.transparent, width: 1.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: ListTile(
-                    leading: Icon(isUni ? Icons.build : Icons.directions_car, color: isUni ? Colors.grey : Colors.blueAccent),
-                    title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Авто: $brand ${p['carModel']}\nАрт: ${p['article']} | К-сть: ${p['quantity']}'),
+                    leading: Icon(
+                      isUni ? Icons.build : Icons.directions_car, 
+                      color: isLowStock ? Colors.redAccent : (isUni ? Colors.grey : Colors.blueAccent)
+                    ),
+                    title: Row(
+                      children: [
+                        Expanded(child: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                        if (isLowStock)
+                          const Chip(
+                            backgroundColor: Colors.red,
+                            label: Text('Мало!', style: TextStyle(color: Colors.white, fontSize: 10)),
+                            padding: EdgeInsets.zero,
+                          )
+                      ],
+                    ),
+                    subtitle: Text(
+                      'Категорія: $category\nАвто: $brand ${p['carModel']}\nАрт: ${p['article']} | К-сть: $qty шт. | Ціна: $price грн',
+                    ),
+                    isThreeLine: true,
                     onTap: () async {
                       if (await Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p))) == true) _refresh();
                     },
@@ -179,9 +245,12 @@ class _AddPartPageState extends State<AddPartPage> {
   final _nameCtrl = TextEditingController();
   final _art = TextEditingController();
   final _qty = TextEditingController(text: '1');
+  final _minQty = TextEditingController(text: '0');
+  final _price = TextEditingController(text: '0');
   final _brandCtrl = TextEditingController();
   final _modelCtrl = TextEditingController();
-
+  
+  String _selectedCategory = 'Загальне';
   List<String> _existingPartNames = [];
 
   @override
@@ -192,8 +261,11 @@ class _AddPartPageState extends State<AddPartPage> {
       _nameCtrl.text = widget.part!['name'] ?? '';
       _art.text = widget.part!['article'] ?? '';
       _qty.text = (widget.part!['quantity'] ?? 1).toString();
+      _minQty.text = (widget.part!['minQuantity'] ?? 0).toString();
+      _price.text = (widget.part!['price'] ?? 0).toString();
       _brandCtrl.text = widget.part!['brand'] ?? 'Універсальна';
       _modelCtrl.text = widget.part!['carModel'] ?? '';
+      _selectedCategory = widget.part!['category'] ?? 'Загальне';
     } else {
       _brandCtrl.text = 'Універсальна';
     }
@@ -219,7 +291,7 @@ class _AddPartPageState extends State<AddPartPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Автодоповнення назви на основі вже наявних на складі деталей
+            // Назва з історією
             Autocomplete<String>(
               initialValue: TextEditingValue(text: _nameCtrl.text),
               optionsBuilder: (v) {
@@ -233,7 +305,7 @@ class _AddPartPageState extends State<AddPartPage> {
                   controller: ctrl,
                   focusNode: fn,
                   decoration: const InputDecoration(
-                    labelText: 'Назва запчастини (підказує існуючі)',
+                    labelText: 'Назва запчастини (пам\'ятає історію)',
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.history),
                   ),
@@ -242,9 +314,31 @@ class _AddPartPageState extends State<AddPartPage> {
               },
             ),
             const SizedBox(height: 12),
+
+            // Вибір категорії вузла
+            DropdownButtonFormField<String>(
+              value: _categoriesList.contains(_selectedCategory) ? _selectedCategory : 'Загальне',
+              decoration: const InputDecoration(labelText: 'Категорія (вузол)', border: OutlineInputBorder()),
+              items: _categoriesList.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedCategory = val);
+              },
+            ),
+            const SizedBox(height: 12),
+
             TextField(controller: _art, decoration: const InputDecoration(labelText: 'Артикул / Код', border: OutlineInputBorder())),
             const SizedBox(height: 12),
-            TextField(controller: _qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder())),
+
+            Row(
+              children: [
+                Expanded(child: TextField(controller: _qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder()))),
+                const SizedBox(width: 10),
+                Expanded(child: TextField(controller: _minQty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Мін. залишок', border: OutlineInputBorder()))),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            TextField(controller: _price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Ціна за одиницю (грн)', border: OutlineInputBorder())),
             const SizedBox(height: 12),
             
             // Вибір марки
@@ -298,8 +392,11 @@ class _AddPartPageState extends State<AddPartPage> {
                 }
                 final data = {
                   'name': _nameCtrl.text.trim(),
+                  'category': _selectedCategory,
                   'article': _art.text.trim(),
                   'quantity': int.tryParse(_qty.text.trim()) ?? 1,
+                  'minQuantity': int.tryParse(_minQty.text.trim()) ?? 0,
+                  'price': double.tryParse(_price.text.trim()) ?? 0.0,
                   'brand': _brandCtrl.text.trim().isEmpty ? 'Універсальна' : _brandCtrl.text.trim(),
                   'carModel': _modelCtrl.text.trim(),
                 };
