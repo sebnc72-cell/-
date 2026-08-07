@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'database_helper.dart'; // Підключаємо наш файл бази даних
 
 void main() {
+  // Гарантуємо, що Flutter готовий до роботи з системними каналами (потрібно для бази даних)
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -29,8 +32,22 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Поки що це просто порожній список. Згодом ми підключимо сюди базу даних.
-  List<String> parts = [];
+  // Тепер це список мап (словників), оскільки база даних повертає дані саме у такому форматі
+  List<Map<String, dynamic>> parts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshParts(); // Завантажуємо збережені запчастини при запуску додатка
+  }
+
+  // Функція для отримання даних з бази та оновлення екрана
+  void _refreshParts() async {
+    final data = await DatabaseHelper.instance.fetchParts();
+    setState(() {
+      parts = data;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,25 +68,25 @@ class _HomePageState extends State<HomePage> {
               itemCount: parts.length,
               itemBuilder: (context, index) {
                 return ListTile(
-                  title: Text(parts[index]),
-                  leading: const Icon(Icons.build), // Додав іконку для краси
+                  // Витягуємо назву деталі з бази за ключем 'name'
+                  title: Text(parts[index]['name']),
+                  leading: const Icon(Icons.build),
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
           // Перехід на екран додавання та очікування результату
-          Navigator.push(
+          final value = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const AddPartPage()),
-          ).then((value) {
-            // Якщо ми повернулися і принесли текст - додаємо його до списку
-            if (value != null && value.toString().trim().isNotEmpty) {
-              setState(() {
-                parts.add(value.toString());
-              });
-            }
-          });
+          );
+
+          // Якщо ми повернулися і принесли текст - зберігаємо його в БД і оновлюємо список
+          if (value != null && value.toString().trim().isNotEmpty) {
+            await DatabaseHelper.instance.insertPart(value.toString());
+            _refreshParts(); // Оновлюємо екран, щоб побачити новий запис
+          }
         },
         child: const Icon(Icons.add),
       ),
@@ -77,7 +94,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// === НОВИЙ КЛАС ДЛЯ ЕКРАНА ДОДАВАННЯ ===
+// === КЛАС ДЛЯ ЕКРАНА ДОДАВАННЯ ===
 class AddPartPage extends StatefulWidget {
   const AddPartPage({super.key});
 
@@ -100,7 +117,7 @@ class _AddPartPageState extends State<AddPartPage> {
               controller: _controller,
               decoration: const InputDecoration(
                 labelText: 'Назва запчастини',
-                border: OutlineInputBorder(), // Зробив поле вводу красивішим
+                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
@@ -110,7 +127,7 @@ class _AddPartPageState extends State<AddPartPage> {
                 Navigator.pop(context, _controller.text);
               },
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50), // Широка кнопка
+                minimumSize: const Size(double.infinity, 50),
               ),
               child: const Text('Зберегти', style: TextStyle(fontSize: 16)),
             ),
