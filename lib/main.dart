@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'database_helper.dart';
 
 // Список категорій вузлів
@@ -66,7 +67,7 @@ final Map<String, List<String>> _modelsByBrand = {
 bool showTotalSum = true;
 ThemeMode currentThemeMode = ThemeMode.dark;
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
@@ -278,7 +279,8 @@ class _HomePageState extends State<HomePage> {
                     ),
                     isThreeLine: true,
                     onTap: () async {
-                      if (await Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p))) == true) _refresh();
+                      final result = await Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p)));
+                      if (result == true) _refresh();
                     },
                   ),
                 );
@@ -289,7 +291,8 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          if (await Navigator.push(context, MaterialPageRoute(builder: (c) => const AddPartPage())) == true) _refresh();
+          final result = await Navigator.push(context, MaterialPageRoute(builder: (c) => const AddPartPage()));
+          if (result == true) _refresh();
         },
         child: const Icon(Icons.add),
       ),
@@ -297,27 +300,74 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class ProfilePage extends StatelessWidget {
+// Редагований профіль
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  String name = "Володимир";
+  String status = "Господарський склад / Гараж";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  void _loadProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      name = prefs.getString('userName') ?? "Володимир";
+      status = prefs.getString('userStatus') ?? "Господарський склад / Гараж";
+    });
+  }
+
+  void _editField(String key, String title, String currentValue) async {
+    final controller = TextEditingController(text: currentValue);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('Редагувати $title'),
+        content: TextField(controller: controller, decoration: const InputDecoration(border: OutlineInputBorder())),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(c, controller.text), child: const Text('Зберегти')),
+        ],
+      ),
+    );
+
+    if (result != null && result.trim().isNotEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, result.trim());
+      _loadProfile();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Профіль')),
-      body: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Користувач:', style: TextStyle(fontSize: 16, color: Colors.grey)),
-            SizedBox(height: 5),
-            Text('Володимир', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
-            Text('Статус:', style: TextStyle(fontSize: 16, color: Colors.grey)),
-            SizedBox(height: 5),
-            Text('Господарський склад / Гараж', style: TextStyle(fontSize: 18)),
-          ],
-        ),
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          ListTile(
+            title: const Text('Користувач', style: TextStyle(fontSize: 14, color: Colors.grey)),
+            subtitle: Text(name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            trailing: const Icon(Icons.edit),
+            onTap: () => _editField('userName', 'Ім\'я', name),
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('Статус', style: TextStyle(fontSize: 14, color: Colors.grey)),
+            subtitle: Text(status, style: TextStyle(fontSize: 18)),
+            trailing: const Icon(Icons.edit),
+            onTap: () => _editField('userStatus', 'Статус', status),
+          ),
+        ],
       ),
     );
   }
