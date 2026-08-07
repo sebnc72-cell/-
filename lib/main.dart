@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'file_picker_controller.dart'; // або стандартні засоби для вибору файлу
 import 'database_helper.dart';
 
 // Список категорій вузлів
@@ -85,7 +84,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // Функція для оновлення стану при зміні налаштувань
   void updateSettings() {
     setState(() {});
   }
@@ -309,11 +307,11 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Профіль')),
-      body: Padding(
-        padding: const MatrixDecoration.all(16.0) as EdgeInsets,
+      body: const Padding(
+        padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text('Користувач:', style: TextStyle(fontSize: 16, color: Colors.grey)),
             SizedBox(height: 5),
             Text('Володимир', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
