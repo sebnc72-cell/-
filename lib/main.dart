@@ -356,14 +356,14 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           ListTile(
             title: const Text('Користувач', style: TextStyle(fontSize: 14, color: Colors.grey)),
-            subtitle: Text(name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            subtitle: Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             trailing: const Icon(Icons.edit),
             onTap: () => _editField('userName', 'Ім\'я', name),
           ),
           const Divider(),
           ListTile(
             title: const Text('Статус', style: TextStyle(fontSize: 14, color: Colors.grey)),
-            subtitle: Text(status, style: TextStyle(fontSize: 18)),
+            subtitle: Text(status, style: const TextStyle(fontSize: 18)),
             trailing: const Icon(Icons.edit),
             onTap: () => _editField('userStatus', 'Статус', status),
           ),
@@ -504,14 +504,14 @@ class AddPartPage extends StatefulWidget {
 }
 
 class _AddPartPageState extends State<AddPartPage> {
-  final _nameCtrl = TextEditingController();
-  final _art = TextEditingController();
-  final _qty = TextEditingController(text: '1');
-  final _minQty = TextEditingController(text: '0');
-  final _price = TextEditingController(text: '0');
-  final _brandCtrl = TextEditingController();
-  final _modelCtrl = TextEditingController();
-  final _yearCtrl = TextEditingController();
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _art;
+  late final TextEditingController _qty;
+  late final TextEditingController _minQty;
+  late final TextEditingController _price;
+  late final TextEditingController _brandCtrl;
+  late final TextEditingController _modelCtrl;
+  late final TextEditingController _yearCtrl;
   
   String _selectedCategory = 'Загальне';
   List<String> _existingPartNames = [];
@@ -519,18 +519,30 @@ class _AddPartPageState extends State<AddPartPage> {
   @override
   void initState() {
     super.initState();
+    _nameCtrl = TextEditingController(text: widget.part?['name'] ?? '');
+    _art = TextEditingController(text: widget.part?['article'] ?? '');
+    _qty = TextEditingController(text: (widget.part?['quantity'] ?? 1).toString());
+    _minQty = TextEditingController(text: (widget.part?['minQuantity'] ?? 0).toString());
+    _price = TextEditingController(text: (widget.part?['price'] ?? 0).toString());
+    _brandCtrl = TextEditingController(text: widget.part?['brand'] ?? '');
+    _modelCtrl = TextEditingController(text: widget.part?['carModel'] ?? '');
+    _yearCtrl = TextEditingController(text: widget.part?['carYear'] ?? '');
+    _selectedCategory = widget.part?['category'] ?? 'Загальне';
+
     _loadExistingPartNames();
-    if (widget.part != null) {
-      _nameCtrl.text = widget.part!['name'] ?? '';
-      _art.text = widget.part!['article'] ?? '';
-      _qty.text = (widget.part!['quantity'] ?? 1).toString();
-      _minQty.text = (widget.part!['minQuantity'] ?? 0).toString();
-      _price.text = (widget.part!['price'] ?? 0).toString();
-      _brandCtrl.text = widget.part!['brand'] ?? '';
-      _modelCtrl.text = widget.part!['carModel'] ?? '';
-      _yearCtrl.text = widget.part!['carYear'] ?? '';
-      _selectedCategory = widget.part!['category'] ?? 'Загальне';
-    }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _art.dispose();
+    _qty.dispose();
+    _minQty.dispose();
+    _price.dispose();
+    _brandCtrl.dispose();
+    _modelCtrl.dispose();
+    _yearCtrl.dispose();
+    super.dispose();
   }
 
   void _loadExistingPartNames() async {
@@ -554,17 +566,18 @@ class _AddPartPageState extends State<AddPartPage> {
         child: Column(
           children: [
             Autocomplete<String>(
-              initialValue: TextEditingValue(text: _nameCtrl.text),
               optionsBuilder: (v) {
                 if (v.text.isEmpty) return _existingPartNames;
                 return _existingPartNames.where((n) => n.toLowerCase().contains(v.text.toLowerCase()));
               },
               onSelected: (s) => _nameCtrl.text = s,
-              fieldViewBuilder: (c, ctrl, fn, onS) {
-                if (ctrl.text.isEmpty && _nameCtrl.text.isNotEmpty) ctrl.text = _nameCtrl.text;
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                if (controller.text.isEmpty && _nameCtrl.text.isNotEmpty) {
+                  controller.text = _nameCtrl.text;
+                }
                 return TextField(
-                  controller: ctrl,
-                  focusNode: fn,
+                  controller: controller,
+                  focusNode: focusNode,
                   decoration: const InputDecoration(
                     labelText: 'Назва запчастини (пам\'ятає історію)',
                     border: OutlineInputBorder(),
@@ -602,7 +615,6 @@ class _AddPartPageState extends State<AddPartPage> {
             const SizedBox(height: 12),
             
             Autocomplete<String>(
-              initialValue: TextEditingValue(text: _brandCtrl.text),
               optionsBuilder: (v) => v.text.isEmpty ? brandsList : brandsList.where((b) => b.toLowerCase().contains(v.text.toLowerCase())),
               onSelected: (s) {
                 setState(() {
@@ -610,11 +622,13 @@ class _AddPartPageState extends State<AddPartPage> {
                   _modelCtrl.text = '';
                 });
               },
-              fieldViewBuilder: (c, ctrl, fn, onS) {
-                if (ctrl.text.isEmpty && _brandCtrl.text.isNotEmpty) ctrl.text = _brandCtrl.text;
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                if (controller.text.isEmpty && _brandCtrl.text.isNotEmpty) {
+                  controller.text = _brandCtrl.text;
+                }
                 return TextField(
-                  controller: ctrl,
-                  focusNode: fn,
+                  controller: controller,
+                  focusNode: focusNode,
                   decoration: const InputDecoration(labelText: 'Марка авто / техніки', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
                   onChanged: (v) => _brandCtrl.text = v,
                 );
@@ -623,18 +637,19 @@ class _AddPartPageState extends State<AddPartPage> {
             const SizedBox(height: 12),
 
             Autocomplete<String>(
-              initialValue: TextEditingValue(text: _modelCtrl.text),
               optionsBuilder: (v) {
                 final allowedModels = _modelsByBrand[_brandCtrl.text] ?? ['Загальна'];
                 if (v.text.isEmpty) return allowedModels;
                 return allowedModels.where((m) => m.toLowerCase().contains(v.text.toLowerCase()));
               },
               onSelected: (s) => _modelCtrl.text = s,
-              fieldViewBuilder: (c, ctrl, fn, onS) {
-                if (ctrl.text.isEmpty && _modelCtrl.text.isNotEmpty) ctrl.text = _modelCtrl.text;
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                if (controller.text.isEmpty && _modelCtrl.text.isNotEmpty) {
+                  controller.text = _modelCtrl.text;
+                }
                 return TextField(
-                  controller: ctrl,
-                  focusNode: fn,
+                  controller: controller,
+                  focusNode: focusNode,
                   decoration: const InputDecoration(labelText: 'Модель (відповідно до марки)', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
                   onChanged: (v) => _modelCtrl.text = v,
                 );
