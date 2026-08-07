@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart'; // Підключаємо наш файл бази даних
+import 'database_helper.dart';
 
 void main() {
-  // Гарантуємо, що Flutter готовий до роботи з системними каналами (потрібно для бази даних)
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
@@ -32,16 +31,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Тепер це список мап (словників), оскільки база даних повертає дані саме у такому форматі
   List<Map<String, dynamic>> parts = [];
 
   @override
   void initState() {
     super.initState();
-    _refreshParts(); // Завантажуємо збережені запчастини при запуску додатка
+    _refreshParts();
   }
 
-  // Функція для отримання даних з бази та оновлення екрана
   void _refreshParts() async {
     final data = await DatabaseHelper.instance.fetchParts();
     setState(() {
@@ -67,25 +64,38 @@ class _HomePageState extends State<HomePage> {
           : ListView.builder(
               itemCount: parts.length,
               itemBuilder: (context, index) {
-                return ListTile(
-                  // Витягуємо назву деталі з бази за ключем 'name'
-                  title: Text(parts[index]['name']),
-                  leading: const Icon(Icons.build),
+                final part = parts[index];
+                // Перевіряємо, чи стоїть позначка для авто (1 = так, 0 = ні)
+                final bool isZafira = part['isForZafira'] == 1;
+                
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: ListTile(
+                    title: Text(part['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      'Артикул: ${part['article'] == "" ? "Не вказано" : part['article']}\nКількість: ${part['quantity']}',
+                    ),
+                    leading: Icon(
+                      isZafira ? Icons.directions_car : Icons.build,
+                      color: isZafira ? Colors.blue : Colors.grey,
+                      size: 32,
+                    ),
+                    isThreeLine: true,
+                  ),
                 );
               },
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Перехід на екран додавання та очікування результату
+          // Очікуємо словник (Map) з даними
           final value = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const AddPartPage()),
           );
 
-          // Якщо ми повернулися і принесли текст - зберігаємо його в БД і оновлюємо список
-          if (value != null && value.toString().trim().isNotEmpty) {
-            await DatabaseHelper.instance.insertPart(value.toString());
-            _refreshParts(); // Оновлюємо екран, щоб побачити новий запис
+          if (value != null && value is Map<String, dynamic>) {
+            await DatabaseHelper.instance.insertPart(value);
+            _refreshParts();
           }
         },
         child: const Icon(Icons.add),
@@ -103,28 +113,76 @@ class AddPartPage extends StatefulWidget {
 }
 
 class _AddPartPageState extends State<AddPartPage> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _articleController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController(text: '1');
+  bool _isForZafira = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Додати запчастину')),
-      body: Padding(
+      // Додали SingleChildScrollView, щоб клавіатура не перекривала поля
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
-              controller: _controller,
+              controller: _nameController,
               decoration: const InputDecoration(
-                labelText: 'Назва запчастини',
+                labelText: 'Назва запчастини (обов\'язково)',
                 border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: _articleController,
+              decoration: const InputDecoration(
+                labelText: 'Артикул / Код',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: _quantityController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Кількість',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            CheckboxListTile(
+              title: const Text('Підходить для Opel Zafira B'),
+              value: _isForZafira,
+              onChanged: (bool? value) {
+                setState(() {
+                  _isForZafira = value ?? false;
+                });
+              },
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // Повертаємо введений текст назад на головний екран
-                Navigator.pop(context, _controller.text);
+                // Перевірка, щоб назва не була порожньою
+                if (_nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Введіть назву запчастини!')),
+                  );
+                  return;
+                }
+                
+                // Пакуємо всі дані в один словник
+                final newPart = {
+                  'name': _nameController.text.trim(),
+                  'article': _articleController.text.trim(),
+                  'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
+                  'isForZafira': _isForZafira ? 1 : 0,
+                };
+                
+                Navigator.pop(context, newPart);
               },
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
