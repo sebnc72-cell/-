@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Мої запчастини'),
+        title: const Text('Склад запчастин'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: parts.isEmpty
@@ -65,19 +65,19 @@ class _HomePageState extends State<HomePage> {
               itemCount: parts.length,
               itemBuilder: (context, index) {
                 final part = parts[index];
-                // Перевіряємо, чи стоїть позначка для авто (1 = так, 0 = ні)
-                final bool isZafira = part['isForZafira'] == 1;
+                final String carModel = part['carModel'] ?? 'Універсальна';
+                final bool isUniversal = carModel == 'Універсальна';
                 
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: ListTile(
                     title: Text(part['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
-                      'Артикул: ${part['article'] == "" ? "Не вказано" : part['article']}\nКількість: ${part['quantity']}',
+                      'Артикул: ${part['article'] == "" ? "Не вказано" : part['article']}\nКількість: ${part['quantity']}\nАвто: $carModel',
                     ),
                     leading: Icon(
-                      isZafira ? Icons.directions_car : Icons.build,
-                      color: isZafira ? Colors.blue : Colors.grey,
+                      isUniversal ? Icons.build : Icons.directions_car,
+                      color: isUniversal ? Colors.grey : Colors.blue,
                       size: 32,
                     ),
                     isThreeLine: true,
@@ -87,7 +87,6 @@ class _HomePageState extends State<HomePage> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Очікуємо словник (Map) з даними
           final value = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const AddPartPage()),
@@ -116,13 +115,25 @@ class _AddPartPageState extends State<AddPartPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _articleController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController(text: '1');
-  bool _isForZafira = false;
+  
+  // Початкове значення для випадаючого списку
+  String _selectedCar = 'Універсальна';
+
+  // ТУТ МОЖНА ДОДАТИ ВСІ ВАШІ 30+ АВТОМОБІЛІВ
+  final List<String> _carModels = [
+    'Універсальна',
+    'Opel Zafira B',
+    'МТЗ',
+    'Renault Trafic',
+    'Volkswagen Transporter',
+    'Mercedes Sprinter',
+    // Просто дописуйте назви сюди через кому в одинарних лапках
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Додати запчастину')),
-      // Додали SingleChildScrollView, щоб клавіатура не перекривала поля
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -151,22 +162,31 @@ class _AddPartPageState extends State<AddPartPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 10),
-            CheckboxListTile(
-              title: const Text('Підходить для Opel Zafira B'),
-              value: _isForZafira,
-              onChanged: (bool? value) {
+            const SizedBox(height: 15),
+            
+            // Новий віджет: Випадаючий список
+            DropdownButtonFormField<String>(
+              value: _selectedCar,
+              decoration: const InputDecoration(
+                labelText: 'Призначення (Авто)',
+                border: OutlineInputBorder(),
+              ),
+              items: _carModels.map((String car) {
+                return DropdownMenuItem<String>(
+                  value: car,
+                  child: Text(car),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
                 setState(() {
-                  _isForZafira = value ?? false;
+                  _selectedCar = newValue!;
                 });
               },
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 25),
             ElevatedButton(
               onPressed: () {
-                // Перевірка, щоб назва не була порожньою
                 if (_nameController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Введіть назву запчастини!')),
@@ -174,12 +194,11 @@ class _AddPartPageState extends State<AddPartPage> {
                   return;
                 }
                 
-                // Пакуємо всі дані в один словник
                 final newPart = {
                   'name': _nameController.text.trim(),
                   'article': _articleController.text.trim(),
                   'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
-                  'isForZafira': _isForZafira ? 1 : 0,
+                  'carModel': _selectedCar, // Зберігаємо обране авто
                 };
                 
                 Navigator.pop(context, newPart);
