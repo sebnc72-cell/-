@@ -7,19 +7,12 @@ import 'database_helper.dart';
 
 // Список категорій вузлів
 final List<String> _categoriesList = [
-  'Загальне',
-  'Двигун',
-  'Підвіска та ходова',
-  'Гальмівна система',
-  'Фільтри та розхідники',
-  'Електрика',
-  'Трансмісія та КПП',
-  'Мастила та рідини',
-  'Кузов та оптика',
-  'Інструменти та обладнання'
+  'Загальне', 'Двигун', 'Підвіска та ходова', 'Гальмівна система',
+  'Фільтри та розхідники', 'Електрика', 'Трансмісія та КПП',
+  'Мастила та рідини', 'Кузов та оптика', 'Інструменти та обладнання'
 ];
 
-// Максимально широкий та детальний словник марок і моделей
+// Широкий словник марок і моделей
 final Map<String, List<String>> _modelsByBrand = {
   'Alfa Romeo': ['145', '146', '147', '155', '156', '159', '164', '166', 'Giulietta', 'Giulia', 'Stelvio', 'MiTo', 'GT', 'Tonale'],
   'Audi': ['80', '90', '100', '200', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q4', 'Q5', 'Q7', 'Q8', 'TT', 'R8', 'RS3', 'RS4', 'RS6'],
@@ -69,8 +62,9 @@ final Map<String, List<String>> _modelsByBrand = {
   'ZAZ (ЗАЗ)': ['Sens', 'Slavuta', 'Tavria', 'Forza', 'Vida', '968', '1102', '1103']
 };
 
-// Глобальне налаштування відображення суми
+// Налаштування додатку
 bool showTotalSum = true;
+ThemeMode currentThemeMode = ThemeMode.dark;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -85,7 +79,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  void updateSettings() {
+  void updateAppSettings() {
     setState(() {});
   }
 
@@ -93,15 +87,18 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(onSettingsChanged: updateSettings),
+      themeMode: currentThemeMode,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blueAccent,
-          brightness: Brightness.dark,
-        ),
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent, brightness: Brightness.light),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent, brightness: Brightness.dark),
+        useMaterial3: true,
+      ),
+      home: HomePage(onSettingsChanged: updateAppSettings),
     );
   }
 }
@@ -200,7 +197,7 @@ class _HomePageState extends State<HomePage> {
             ),
             ListTile(
               leading: const Icon(Icons.backup),
-              title: const Text('Резервне копіювання'),
+              title: const Text('Резервне копіювання & Excel'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (c) => const BackupPage()));
@@ -300,7 +297,6 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Сторінка профілю
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -327,7 +323,6 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-// Сторінка налаштувань
 class SettingsPage extends StatefulWidget {
   final VoidCallback onChanged;
   const SettingsPage({super.key, required this.onChanged});
@@ -348,8 +343,18 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: const Text('Відображати загальну вартість всіх деталей на складі'),
             value: showTotalSum,
             onChanged: (bool value) {
+              setState(() { showTotalSum = value; });
+              widget.onChanged();
+            },
+          ),
+          const Divider(),
+          SwitchListTile(
+            title: const Text('Темна тема'),
+            subtitle: const Text('Увімкнути темне оформлення інтерфейсу'),
+            value: currentThemeMode == ThemeMode.dark,
+            onChanged: (bool value) {
               setState(() {
-                showTotalSum = value;
+                currentThemeMode = value ? ThemeMode.dark : ThemeMode.light;
               });
               widget.onChanged();
             },
@@ -360,7 +365,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// Сторінка резервного копіювання (бекап)
 class BackupPage extends StatelessWidget {
   const BackupPage({super.key});
 
@@ -380,25 +384,60 @@ class BackupPage extends StatelessWidget {
     }
   }
 
+  Future<void> _exportToExcel(BuildContext context) async {
+    try {
+      final parts = await DatabaseHelper.instance.fetchParts();
+      StringBuffer csvContent = StringBuffer();
+      csvContent.writeln('Назва,Категорія,Артикул,Кількість,Мін.залишок,Ціна(грн),Марка,Модель,Рік');
+
+      for (var p in parts) {
+        csvContent.writeln(
+          '"${p['name']}","${p['category']}","${p['article']}","${p['quantity']}","${p['minQuantity']}","${p['price']}","${p['brand']}","${p['carModel']}","${p['carYear']}"'
+        );
+      }
+
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/sklad_zapchastyn.csv';
+      final file = File(path);
+      await file.writeAsString(csvContent.toString());
+
+      await Share.shareXFiles([XFile(path)], text: 'Звіт складу у форматі Excel (CSV)');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка вивантаження в Excel: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Резервне копіювання')),
+      appBar: AppBar(title: const Text('Резервне копіювання та Звіти')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Тут ви можете створити резервну копію вашої бази даних, щоб надіслати її в месенджер або зберегти у пам\'ять телефону перед оновленням додатку.',
-              style: TextStyle(fontSize: 15, color: Colors.grey),
+              'Резервна копія бази (для оновлення додатку):',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             ElevatedButton.icon(
               icon: const Icon(Icons.share),
               label: const Text('Зберегти / Поділитися базою даних'),
               style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
               onPressed: () => _exportDatabase(context),
+            ),
+            const SizedBox(height: 30),
+            const Text(
+              'Експорт у таблицю Excel:',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.table_chart, color: Colors.greenAccent),
+              label: const Text('Експортувати список в Excel (CSV)'),
+              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+              onPressed: () => _exportToExcel(context),
             ),
           ],
         ),
