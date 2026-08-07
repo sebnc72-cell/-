@@ -4,31 +4,29 @@ import 'package:path/path.dart';
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
-
   DatabaseHelper._init();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    // Нова версія бази для випадаючого списку авто
-    _database = await _initDB('parts_database_v3.db');
+    _database = await _initDB('parts_database_v4.db');
     return _database!;
   }
 
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-
     return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 
   Future _createDB(Database db, int version) async {
-    // Замінили isForZafira на carModel (текст)
+    // brand - марка (список), carModel - конкретна модель (вручну)
     await db.execute('''
     CREATE TABLE parts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       article TEXT,
       quantity INTEGER,
+      brand TEXT,
       carModel TEXT
     )
     ''');
