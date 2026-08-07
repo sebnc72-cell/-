@@ -565,16 +565,16 @@ class _AddPartPageState extends State<AddPartPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Autocomplete<String>(
-              optionsBuilder: (v) {
+            RawAutocomplete<String>(
+              textEditingController: _nameCtrl,
+              optionsBuilder: (TextEditingValue v) {
                 if (v.text.isEmpty) return _existingPartNames;
                 return _existingPartNames.where((n) => n.toLowerCase().contains(v.text.toLowerCase()));
               },
-              onSelected: (s) => _nameCtrl.text = s,
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                if (controller.text.isEmpty && _nameCtrl.text.isNotEmpty) {
-                  controller.text = _nameCtrl.text;
-                }
+              onSelected: (String s) {
+                _nameCtrl.text = s;
+              },
+              builder: (BuildContext context, TextEditingController controller, FocusNode focusNode, VoidCallback onFieldSubmitted) {
                 return TextField(
                   controller: controller,
                   focusNode: focusNode,
@@ -583,7 +583,31 @@ class _AddPartPageState extends State<AddPartPage> {
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.history),
                   ),
-                  onChanged: (v) => _nameCtrl.text = v,
+                );
+              },
+              optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4.0,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 350),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: options.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final String option = options.elementAt(index);
+                          return InkWell(
+                            onTap: () => onSelected(option),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Text(option),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
@@ -614,44 +638,93 @@ class _AddPartPageState extends State<AddPartPage> {
             TextField(controller: _price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Ціна за одиницю (грн)', border: OutlineInputBorder())),
             const SizedBox(height: 12),
             
-            Autocomplete<String>(
-              optionsBuilder: (v) => v.text.isEmpty ? brandsList : brandsList.where((b) => b.toLowerCase().contains(v.text.toLowerCase())),
-              onSelected: (s) {
+            RawAutocomplete<String>(
+              textEditingController: _brandCtrl,
+              optionsBuilder: (TextEditingValue v) {
+                if (v.text.isEmpty) return brandsList;
+                return brandsList.where((b) => b.toLowerCase().contains(v.text.toLowerCase()));
+              },
+              onSelected: (String s) {
                 setState(() {
                   _brandCtrl.text = s;
                   _modelCtrl.text = '';
                 });
               },
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                if (controller.text.isEmpty && _brandCtrl.text.isNotEmpty) {
-                  controller.text = _brandCtrl.text;
-                }
+              builder: (BuildContext context, TextEditingController controller, FocusNode focusNode, VoidCallback onFieldSubmitted) {
                 return TextField(
                   controller: controller,
                   focusNode: focusNode,
                   decoration: const InputDecoration(labelText: 'Марка авто / техніки', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
-                  onChanged: (v) => _brandCtrl.text = v,
+                );
+              },
+              optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4.0,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 350),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: options.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final String option = options.elementAt(index);
+                          return InkWell(
+                            onTap: () => onSelected(option),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Text(option),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
             const SizedBox(height: 12),
 
-            Autocomplete<String>(
-              optionsBuilder: (v) {
+            RawAutocomplete<String>(
+              textEditingController: _modelCtrl,
+              optionsBuilder: (TextEditingValue v) {
                 final allowedModels = _modelsByBrand[_brandCtrl.text] ?? ['Загальна'];
                 if (v.text.isEmpty) return allowedModels;
                 return allowedModels.where((m) => m.toLowerCase().contains(v.text.toLowerCase()));
               },
-              onSelected: (s) => _modelCtrl.text = s,
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                if (controller.text.isEmpty && _modelCtrl.text.isNotEmpty) {
-                  controller.text = _modelCtrl.text;
-                }
+              onSelected: (String s) {
+                _modelCtrl.text = s;
+              },
+              builder: (BuildContext context, TextEditingController controller, FocusNode focusNode, VoidCallback onFieldSubmitted) {
                 return TextField(
                   controller: controller,
                   focusNode: focusNode,
                   decoration: const InputDecoration(labelText: 'Модель (відповідно до марки)', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
-                  onChanged: (v) => _modelCtrl.text = v,
+                );
+              },
+              optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4.0,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 350),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: options.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final String option = options.elementAt(index);
+                          return InkWell(
+                            onTap: () => onSelected(option),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Text(option),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
