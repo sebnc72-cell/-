@@ -565,8 +565,8 @@ class _AddPartPageState extends State<AddPartPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            RawAutocomplete<String>(
-              textEditingController: _nameCtrl,
+            Autocomplete<String>(
+              initialValue: TextEditingValue(text: _nameCtrl.text),
               optionsBuilder: (TextEditingValue v) {
                 if (v.text.isEmpty) return _existingPartNames;
                 return _existingPartNames.where((n) => n.toLowerCase().contains(v.text.toLowerCase()));
@@ -574,40 +574,21 @@ class _AddPartPageState extends State<AddPartPage> {
               onSelected: (String s) {
                 _nameCtrl.text = s;
               },
-              builder: (BuildContext context, TextEditingController controller, FocusNode focusNode, VoidCallback onFieldSubmitted) {
+              fieldViewBuilder: (BuildContext context, TextEditingController fieldController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
+                if (fieldController.text != _nameCtrl.text && fieldController.text.isEmpty) {
+                  fieldController.text = _nameCtrl.text;
+                }
                 return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: fieldController,
+                  focusNode: fieldFocusNode,
                   decoration: const InputDecoration(
                     labelText: 'Назва запчастини (пам\'ятає історію)',
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.history),
                   ),
-                );
-              },
-              optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
-                return Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    elevation: 4.0,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 350),
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: options.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final String option = options.elementAt(index);
-                          return InkWell(
-                            onTap: () => onSelected(option),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Text(option),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  onChanged: (v) {
+                    _nameCtrl.text = v;
+                  },
                 );
               },
             ),
@@ -638,8 +619,8 @@ class _AddPartPageState extends State<AddPartPage> {
             TextField(controller: _price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Ціна за одиницю (грн)', border: OutlineInputBorder())),
             const SizedBox(height: 12),
             
-            RawAutocomplete<String>(
-              textEditingController: _brandCtrl,
+            Autocomplete<String>(
+              initialValue: TextEditingValue(text: _brandCtrl.text),
               optionsBuilder: (TextEditingValue v) {
                 if (v.text.isEmpty) return brandsList;
                 return brandsList.where((b) => b.toLowerCase().contains(v.text.toLowerCase()));
@@ -650,43 +631,21 @@ class _AddPartPageState extends State<AddPartPage> {
                   _modelCtrl.text = '';
                 });
               },
-              builder: (BuildContext context, TextEditingController controller, FocusNode focusNode, VoidCallback onFieldSubmitted) {
+              fieldViewBuilder: (BuildContext context, TextEditingController fieldController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
                 return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: fieldController,
+                  focusNode: fieldFocusNode,
                   decoration: const InputDecoration(labelText: 'Марка авто / техніки', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
-                );
-              },
-              optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
-                return Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    elevation: 4.0,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 350),
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: options.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final String option = options.elementAt(index);
-                          return InkWell(
-                            onTap: () => onSelected(option),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Text(option),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  onChanged: (v) {
+                    _brandCtrl.text = v;
+                  },
                 );
               },
             ),
             const SizedBox(height: 12),
 
-            RawAutocomplete<String>(
-              textEditingController: _modelCtrl,
+            Autocomplete<String>(
+              initialValue: TextEditingValue(text: _modelCtrl.text),
               optionsBuilder: (TextEditingValue v) {
                 final allowedModels = _modelsByBrand[_brandCtrl.text] ?? ['Загальна'];
                 if (v.text.isEmpty) return allowedModels;
@@ -695,36 +654,14 @@ class _AddPartPageState extends State<AddPartPage> {
               onSelected: (String s) {
                 _modelCtrl.text = s;
               },
-              builder: (BuildContext context, TextEditingController controller, FocusNode focusNode, VoidCallback onFieldSubmitted) {
+              fieldViewBuilder: (BuildContext context, TextEditingController fieldController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
                 return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
+                  controller: fieldController,
+                  focusNode: fieldFocusNode,
                   decoration: const InputDecoration(labelText: 'Модель (відповідно до марки)', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
-                );
-              },
-              optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
-                return Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    elevation: 4.0,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 350),
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: options.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final String option = options.elementAt(index);
-                          return InkWell(
-                            onTap: () => onSelected(option),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Text(option),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
+                  onChanged: (v) {
+                    _modelCtrl.text = v;
+                  },
                 );
               },
             ),
