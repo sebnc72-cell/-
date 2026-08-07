@@ -3,11 +3,33 @@ import 'database_helper.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: HomePage(), theme: ThemeData(brightness: Brightness.dark, useMaterial3: true)));
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Облік запчастин',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blueAccent,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: const HomePage(),
+    );
+  }
 }
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -18,64 +40,127 @@ class _HomePageState extends State<HomePage> {
   String searchQuery = "";
 
   @override
-  void initState() { super.initState(); _refresh(); }
+  void initState() {
+    super.initState();
+    _refresh();
+  }
 
   void _refresh() async {
-    final data = await DatabaseHelper.instance.fetchParts();
-    data.sort((a, b) => (a['brand'] ?? 'Універсальна').compareTo(b['brand'] ?? 'Універсальна'));
-    setState(() {
-      allParts = data;
-      _applySearch();
+    final rawData = await DatabaseHelper.instance.fetchParts();
+    // Безпечна копія списку для уникнення помилок сортування
+    final List<Map<String, dynamic>> data = List<Map<String, dynamic>>.from(rawData);
+    
+    // Сортування за маркою
+    data.sort((a, b) {
+      final brandA = (a['brand'] ?? 'Універсальна').toString();
+      final brandB = (b['brand'] ?? 'Універсальна').toString();
+      return brandA.compareTo(brandB);
     });
+
+    if (mounted) {
+      setState(() {
+        allParts = data;
+        _applySearch();
+      });
+    }
   }
 
   void _applySearch() {
-    setState(() {
-      filteredParts = allParts.where((p) =>
-          p['name'].toString().toLowerCase().contains(searchQuery.toLowerCase()) ||
-          p['article'].toString().toLowerCase().contains(searchQuery.toLowerCase()) ||
-          p['brand'].toString().toLowerCase().contains(searchQuery.toLowerCase())).toList();
-    });
+    if (searchQuery.trim().isEmpty) {
+      filteredParts = List.from(allParts);
+    } else {
+      final query = searchQuery.toLowerCase().trim();
+      filteredParts = allParts.where((p) {
+        final name = (p['name'] ?? '').toString().toLowerCase();
+        final article = (p['article'] ?? '').toString().toLowerCase();
+        final brand = (p['brand'] ?? '').toString().toLowerCase();
+        final model = (p['carModel'] ?? '').toString().toLowerCase();
+        return name.contains(query) ||
+            article.contains(query) ||
+            brand.contains(query) ||
+            model.contains(query);
+      }).toList();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Склад запчастин')),
+      appBar: AppBar(
+        title: const Text('Склад запчастин'),
+      ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
-              decoration: const InputDecoration(labelText: 'Пошук (назва, арт, марка)', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
-              onChanged: (v) { searchQuery = v; _applySearch(); },
+              decoration: const InputDecoration(
+                labelText: 'Пошук (назва, арт, марка, модель)',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (v) {
+                setState(() {
+                  searchQuery = v;
+                  _applySearch();
+                });
+              },
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredParts.length,
-              itemBuilder: (context, i) {
-                final p = filteredParts[i];
-                final bool isUniversal = p['brand'] == 'Універсальна';
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: ListTile(
-                    leading: Icon(isUniversal ? Icons.build : Icons.directions_car, color: Colors.blueAccent),
-                    title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Авто: ${p['brand']} ${p['carModel']}\nАрт: ${p['article']} | К-сть: ${p['quantity']}'),
-                    onTap: () async {
-                      final result = await Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p)));
-                      if (result == true) _refresh();
+            child: filteredParts.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Нічого не знайдено',
+                      style: TextStyle(color: Colors.white60, fontSize: 16),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: filteredParts.length,
+                    itemBuilder: (context, i) {
+                      final p = filteredParts[i];
+                      final brand = (p['brand'] ?? 'Універсальна').toString();
+                      final carModel = (p['carModel'] ?? '').toString();
+                      final bool isUniversal = brand == 'Універсальна' || brand.isEmpty;
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        child: ListTile(
+                          leading: Icon(
+                            isUniversal ? Icons.build : Icons.directions_car,
+                            color: isUniversal ? Colors.grey : Colors.blueAccent,
+                            size: 32,
+                          ),
+                          title: Text(
+                            (p['name'] ?? '').toString(),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            'Авто: ${brand.isEmpty ? 'Універсальна' : brand} $carModel\nАрт: ${p['article'] ?? '—'} | К-сть: ${p['quantity'] ?? 0}',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (c) => AddPartPage(part: p)),
+                            );
+                            if (result == true) _refresh();
+                          },
+                        ),
+                      );
                     },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (c) => const AddPartPage())); _refresh(); },
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (c) => const AddPartPage()),
+          );
+          if (result == true) _refresh();
+        },
         child: const Icon(Icons.add),
       ),
     );
@@ -85,68 +170,175 @@ class _HomePageState extends State<HomePage> {
 class AddPartPage extends StatefulWidget {
   final Map<String, dynamic>? part;
   const AddPartPage({super.key, this.part});
+
   @override
   State<AddPartPage> createState() => _AddPartPageState();
 }
 
 class _AddPartPageState extends State<AddPartPage> {
-  final _name = TextEditingController();
-  final _art = TextEditingController();
-  final _qty = TextEditingController(text: '1');
-  final _model = TextEditingController();
-  String _brand = 'Універсальна';
-  final List<String> _brands = ['Універсальна', 'Alfa Romeo', 'Audi', 'BMW', 'Case IH', 'Caterpillar', 'Chevrolet', 'Chrysler', 'Citroën', 'CLAAS', 'Dacia', 'DAF', 'Dodge', 'FAW', 'Fendt', 'Fiat', 'Ford', 'Foton', 'GAZ (ГАЗ)', 'GMC', 'Great Wall', 'Honda', 'Hyundai', 'Infiniti', 'Isuzu', 'IVECO', 'JCB', 'Jeep', 'John Deere', 'KAMAZ (КАМАЗ)', 'Kia', 'KRAZ (КрАЗ)', 'Lada / ВАЗ', 'Lancia', 'Land Rover', 'Lexus', 'MAN', 'MAZ (МАЗ)', 'Mazda', 'Mercedes-Benz', 'MINI', 'Mitsubishi', 'MTZ (МТЗ)', 'New Holland', 'Nissan', 'Opel', 'Peugeot', 'Porsche', 'Renault', 'Scania', 'SEAT', 'Skoda', 'Smart', 'SsangYong', 'Subaru', 'Suzuki', 'Tatra', 'Toyota', 'UMZ (ЮМЗ)', 'Volkswagen', 'Volvo', 'XTZ (ХТЗ)', 'YTO', 'ZAZ (ЗАЗ)'];
+  final _nameController = TextEditingController();
+  final _articleController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
+  final _modelController = TextEditingController();
+  final _brandController = TextEditingController();
+
+  final List<String> _brands = [
+    'Універсальна',
+    'Alfa Romeo', 'Audi', 'BMW', 'Case IH', 'Caterpillar', 'Chevrolet', 'Chrysler',
+    'Citroën', 'CLAAS', 'Dacia', 'DAF', 'Dodge', 'FAW', 'Fendt', 'Fiat', 'Ford',
+    'Foton', 'GAZ (ГАЗ)', 'GMC', 'Great Wall', 'Honda', 'Hyundai', 'Infiniti',
+    'Isuzu', 'IVECO', 'JCB', 'Jeep', 'John Deere', 'KAMAZ (КАМАЗ)', 'Kia',
+    'KRAZ (КрАЗ)', 'Lada / ВАЗ', 'Lancia', 'Land Rover', 'Lexus', 'MAN',
+    'MAZ (МАЗ)', 'Mazda', 'Mercedes-Benz', 'MINI', 'Mitsubishi', 'MTZ (МТЗ)',
+    'New Holland', 'Nissan', 'Opel', 'Peugeot', 'Porsche', 'Renault', 'Scania',
+    'SEAT', 'Skoda', 'Smart', 'SsangYong', 'Subaru', 'Suzuki', 'Tatra', 'Toyota',
+    'UMZ (ЮМЗ)', 'Volkswagen', 'Volvo', 'XTZ (ХТЗ)', 'YTO', 'ZAZ (ЗАЗ)'
+  ];
 
   @override
   void initState() {
     super.initState();
     if (widget.part != null) {
-      _name.text = widget.part!['name'];
-      _art.text = widget.part!['article'];
-      _qty.text = widget.part!['quantity'].toString();
-      _model.text = widget.part!['carModel'];
-      _brand = widget.part!['brand'];
+      _nameController.text = (widget.part!['name'] ?? '').toString();
+      _articleController.text = (widget.part!['article'] ?? '').toString();
+      _quantityController.text = (widget.part!['quantity'] ?? 1).toString();
+      _modelController.text = (widget.part!['carModel'] ?? '').toString();
+      _brandController.text = (widget.part!['brand'] ?? 'Універсальна').toString();
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _articleController.dispose();
+    _quantityController.dispose();
+    _modelController.dispose();
+    _brandController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.part == null ? 'Додати' : 'Редагувати')),
+      appBar: AppBar(
+        title: Text(widget.part == null ? 'Додати запчастину' : 'Редагувати запчастину'),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Назва', border: OutlineInputBorder())),
-            const SizedBox(height: 10),
-            TextField(controller: _art, decoration: const InputDecoration(labelText: 'Артикул', border: OutlineInputBorder())),
-            const SizedBox(height: 10),
-            TextField(controller: _qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder())),
-            const SizedBox(height: 10),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Назва запчастини (обов\'язково)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _articleController,
+              decoration: const InputDecoration(
+                labelText: 'Артикул / Код',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _quantityController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Кількість',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Чистий та надійний Autocomplete
             Autocomplete<String>(
-              optionsBuilder: (v) => v.text.isEmpty ? _brands : _brands.where((b) => b.toLowerCase().contains(v.text.toLowerCase())),
-              onSelected: (s) => setState(() => _brand = s),
-              fieldViewBuilder: (c, ctrl, fn, onS) {
-                if (ctrl.text.isEmpty && _brand.isNotEmpty) ctrl.text = _brand;
-                return TextField(controller: ctrl, focusNode: fn, decoration: const InputDecoration(labelText: 'Марка авто', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)), onChanged: (v) => _brand = v);
+              initialValue: TextEditingValue(text: _brandController.text),
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text.isEmpty) {
+                  return _brands;
+                }
+                return _brands.where((String brand) {
+                  return brand.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                });
+              },
+              onSelected: (String selection) {
+                _brandController.text = selection;
+              },
+              fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) {
+                return TextField(
+                  controller: textController,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Марка авто / техніки',
+                    hintText: 'Введіть марку або виберіть зі списку',
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: (val) {
+                    _brandController.text = val;
+                  },
+                );
               },
             ),
-            const SizedBox(height: 10),
-            TextField(controller: _model, decoration: const InputDecoration(labelText: 'Модель', border: OutlineInputBorder())),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 12),
+            TextField(
+              controller: _modelController,
+              decoration: const InputDecoration(
+                labelText: 'Модель (наприклад, Zafira B, Sprinter 316)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () async {
-                final data = {'name': _name.text, 'article': _art.text, 'quantity': int.tryParse(_qty.text) ?? 1, 'brand': _brand, 'carModel': _model.text};
-                if (widget.part == null) await DatabaseHelper.instance.insertPart(data);
-                else { data['id'] = widget.part!['id']; await DatabaseHelper.instance.updatePart(data); }
+                if (_nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Введіть назву запчастини!')),
+                  );
+                  return;
+                }
+
+                final brandText = _brandController.text.trim();
+                final data = <String, dynamic>{
+                  'name': _nameController.text.trim(),
+                  'article': _articleController.text.trim(),
+                  'quantity': int.tryParse(_quantityController.text.trim()) ?? 1,
+                  'brand': brandText.isEmpty ? 'Універсальна' : brandText,
+                  'carModel': _modelController.text.trim(),
+                };
+
+                if (widget.part == null) {
+                  await DatabaseHelper.instance.insertPart(data);
+                } else {
+                  data['id'] = widget.part!['id'];
+                  await DatabaseHelper.instance.updatePart(data);
+                }
+
                 if (mounted) Navigator.pop(context, true);
               },
-              child: const Text('Зберегти'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: Text(widget.part == null ? 'Зберегти' : 'Оновити', style: const TextStyle(fontSize: 16)),
             ),
             if (widget.part != null) ...[
-              const SizedBox(height: 10),
-              ElevatedButton(onPressed: () async { await DatabaseHelper.instance.deletePart(widget.part!['id']); if (mounted) Navigator.pop(context, true); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), child: const Text('Видалити')),
-            ]
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () async {
+                  await DatabaseHelper.instance.deletePart(widget.part!['id']);
+                  if (mounted) Navigator.pop(context, true);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: const Text('Видалити', style: TextStyle(fontSize: 16, color: Colors.white)),
+              ),
+            ],
           ],
         ),
       ),
