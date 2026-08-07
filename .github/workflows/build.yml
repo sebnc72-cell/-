@@ -17,35 +17,26 @@ jobs:
         with:
           flutter-version: '3.19.x'
           
-      - run: flutter create . --platforms=android --project-name=my_app
-      
-      - name: Generate Permanent Keystore
+      - name: Auto increment version
         run: |
-          keytool -genkey -v -keystore android/app/release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias mykey -storepass secretpassword -keypass secretpassword -dname "CN=MyApp, O=Dev, C=UA"
-          
-      - name: Inject Signing Config into Gradle
-        run: |
+          # Автоматично збільшуємо номер білду після плюса в pubspec.yaml
           python3 -c "
-          with open('android/app/build.gradle', 'r') as f:
+          import re
+          with open('pubspec.yaml', 'r') as f:
               content = f.read()
           
-          target = 'android {'
-          replacement = '''android {
-              signingConfigs {
-                  release {
-                      storeFile file(\"release.jks\")
-                      storePassword \"secretpassword\"
-                      keyAlias \"mykey\"
-                      keyPassword \"secretpassword\"
-                  }
-              }'''
-          content = content.replace(target, replacement, 1)
-          content = content.replace('buildTypes {', 'buildTypes {\n        release { signingConfig signingConfigs.release }', 1)
+          def inc_version(match):
+              prefix = match.group(1)
+              num = int(match.group(2))
+              return f'{prefix}{num + 1}'
           
-          with open('android/app/build.gradle', 'w') as f:
-              f.write(content)
+          new_content = re.sub(r'(version:\s*\d+\.\d+\.\d+\+)(\d+)', inc_version, content)
+          
+          with open('pubspec.yaml', 'w') as f:
+              f.write(new_content)
           "
           
+      - run: flutter create . --platforms=android --project-name=my_app
       - run: flutter pub get
       - run: flutter build apk --release
       
