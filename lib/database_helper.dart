@@ -9,8 +9,8 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    // Змінили назву файлу, щоб створити нову таблицю з розширеними полями
-    _database = await _initDB('parts_database_v2.db');
+    // Нова версія бази для випадаючого списку авто
+    _database = await _initDB('parts_database_v3.db');
     return _database!;
   }
 
@@ -22,19 +22,18 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    // Додали поля: article (артикул), quantity (кількість), isForZafira (позначка авто)
+    // Замінили isForZafira на carModel (текст)
     await db.execute('''
     CREATE TABLE parts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       article TEXT,
       quantity INTEGER,
-      isForZafira INTEGER
+      carModel TEXT
     )
     ''');
   }
 
-  // Оновлений метод отримує цілий словник даних (Map) замість одного рядка
   Future<int> insertPart(Map<String, dynamic> partData) async {
     final db = await instance.database;
     return await db.insert('parts', partData);
