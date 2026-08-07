@@ -23,34 +23,32 @@ jobs:
           import re
           with open('pubspec.yaml', 'r') as f:
               content = f.read()
-          
           def inc_version(match):
               prefix = match.group(1)
               num = int(match.group(2))
               return f'{prefix}{num + 1}'
-          
           new_content = re.sub(r'(version:\s*\d+\.\d+\.\d+\+)(\d+)', inc_version, content)
-          
           with open('pubspec.yaml', 'w') as f:
               f.write(new_content)
           "
           
       - run: flutter create . --platforms=android --project-name=my_app
 
-      - name: Fix Kotlin Version Conflict
+      - name: Setup Gradle Properties and Kotlin Fix
         run: |
-          BUILD_GRADLE="android/app/build.gradle"
-          if [ -f "$BUILD_GRADLE" ]; then
-            echo "Adding resolution strategy to build.gradle"
-            sed -i '/android {/a \
-            configurations.all {\
-                resolutionStrategy {\
-                    force '\''org.jetbrains.kotlin:kotlin-stdlib:1.8.10'\''\
-                    force '\''org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.10'\''\
-                    force '\''org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.10'\''\
-                }\
-            }' "$BUILD_GRADLE"
-          fi
+          mkdir -p android/gradle/wrapper
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          
+          # Додаємо стратегію вирішення конфліктів у build.gradle
+          echo "" >> android/app/build.gradle
+          echo "configurations.all {" >> android/app/build.gradle
+          echo "    resolutionStrategy {" >> android/app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.10'" >> android/app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.10'" >> android/app/build.gradle
+          echo "        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.10'" >> android/app/build.gradle
+          echo "    }" >> android/app/build.gradle
+          echo "}" >> android/app/build.gradle
 
       - run: flutter pub get
       - run: flutter build apk --release
