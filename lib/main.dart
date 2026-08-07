@@ -3,29 +3,7 @@ import 'database_helper.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Облік запчастин',
-      // Тепер тут точно активована темна тема
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blueAccent,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: const HomePage(),
-    );
-  }
+  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: HomePage(), theme: ThemeData(brightness: Brightness.dark, useMaterial3: true)));
 }
 
 class HomePage extends StatefulWidget {
@@ -35,33 +13,65 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Map<String, dynamic>> parts = [];
+  List<Map<String, dynamic>> allParts = [];
+  List<Map<String, dynamic>> filteredParts = [];
+  String searchQuery = "";
+
   @override
   void initState() { super.initState(); _refresh(); }
-  void _refresh() async { final data = await DatabaseHelper.instance.fetchParts(); setState(() { parts = data; }); }
+
+  void _refresh() async {
+    final data = await DatabaseHelper.instance.fetchParts();
+    // Сортуємо дані за маркою авто (brand)
+    data.sort((a, b) => (a['brand'] ?? 'Універсальна').compareTo(b['brand'] ?? 'Універсальна'));
+    setState(() {
+      allParts = data;
+      _applySearch();
+    });
+  }
+
+  void _applySearch() {
+    setState(() {
+      filteredParts = allParts.where((p) =>
+          p['name'].toString().toLowerCase().contains(searchQuery.toLowerCase()) ||
+          p['article'].toString().toLowerCase().contains(searchQuery.toLowerCase()) ||
+          p['brand'].toString().toLowerCase().contains(searchQuery.toLowerCase())).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Склад запчастин')),
-      body: ListView.builder(
-        itemCount: parts.length,
-        itemBuilder: (context, i) {
-          final p = parts[i];
-          final bool isUniversal = p['brand'] == 'Універсальна';
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            child: ListTile(
-              title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('Арт: ${p['article']}\nКількість: ${p['quantity']}\nАвто: ${p['brand']} ${p['carModel']}'),
-              leading: Icon(isUniversal ? Icons.build : Icons.directions_car, color: Colors.blueAccent),
-              onTap: () async {
-                final result = await Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p)));
-                if (result == true) _refresh();
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: const InputDecoration(labelText: 'Пошук (назва, арт, марка)', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+              onChanged: (v) { searchQuery = v; _applySearch(); },
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredParts.length,
+              itemBuilder: (context, i) {
+                final p = filteredParts[i];
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: ListTile(
+                    title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Авто: ${p['brand']} ${p['carModel']}\nАрт: ${p['article']} | К-сть: ${p['quantity']}'),
+                    onTap: () async {
+                      final result = await Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p)));
+                      if (result == true) _refresh();
+                    },
+                  ),
+                );
               },
             ),
-          );
-        },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (c) => const AddPartPage())); _refresh(); },
@@ -71,6 +81,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// === КЛАС ДОДАВАННЯ (залишаємо без змін) ===
 class AddPartPage extends StatefulWidget {
   final Map<String, dynamic>? part;
   const AddPartPage({super.key, this.part});
