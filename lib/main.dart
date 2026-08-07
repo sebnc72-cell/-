@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'file_picker_controller.dart'; // або стандартні засоби для вибору файлу
 import 'database_helper.dart';
 
 // Список категорій вузлів
@@ -65,24 +69,48 @@ final Map<String, List<String>> _modelsByBrand = {
   'ZAZ (ЗАЗ)': ['Sens', 'Slavuta', 'Tavria', 'Forza', 'Vida', '968', '1102', '1103']
 };
 
+// Глобальні налаштування додатку
+bool showTotalSum = true;
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: const HomePage(),
-    theme: ThemeData(
-      brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.blueAccent,
+  runApp(const MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Функція для оновлення стану при зміні налаштувань
+  void updateSettings() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: HomePage(onSettingsChanged: updateSettings),
+      theme: ThemeData(
         brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blueAccent,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
       ),
-      useMaterial3: true,
-    ),
-  ));
+    );
+  }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final VoidCallback onSettingsChanged;
+  const HomePage({super.key, required this.onSettingsChanged});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -135,16 +163,68 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Склад запчастин'),
         actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              child: Text(
-                'Сума: ${totalInventoryCost.toStringAsFixed(0)} грн',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent, fontSize: 15),
+          if (showTotalSum)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Text(
+                  'Сума: ${totalInventoryCost.toStringAsFixed(0)} грн',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.greenAccent, fontSize: 15),
+                ),
+              ),
+            )
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blueAccent),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(Icons.warehouse, size: 48, color: Colors.white),
+                  SizedBox(height: 10),
+                  Text('Гараж / Склад', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                ],
               ),
             ),
-          )
-        ],
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Профіль'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const ProfilePage()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.backup),
+              title: const Text('Резервне копіювання'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (c) => const BackupPage()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Налаштування'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(
+                    builder: (c) => SettingsPage(onChanged: () {
+                      widget.onSettingsChanged();
+                      setState(() {});
+                    }),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -216,6 +296,113 @@ class _HomePageState extends State<HomePage> {
           if (await Navigator.push(context, MaterialPageRoute(builder: (c) => const AddPartPage())) == true) _refresh();
         },
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+// Сторінка профілю
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Профіль')),
+      body: Padding(
+        padding: const MatrixDecoration.all(16.0) as EdgeInsets,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text('Користувач:', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            SizedBox(height: 5),
+            Text('Володимир', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+            Text('Статус:', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            SizedBox(height: 5),
+            Text('Господарський склад / Гараж', style: TextStyle(fontSize: 18)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Сторінка налаштувань
+class SettingsPage extends StatefulWidget {
+  final VoidCallback onChanged;
+  const SettingsPage({super.key, required this.onChanged});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Налаштування')),
+      body: ListView(
+        children: [
+          SwitchListTile(
+            title: const Text('Показувати загальну суму у верхньому кутку'),
+            subtitle: const Text('Відображати загальну вартість всіх деталей на складі'),
+            value: showTotalSum,
+            onChanged: (bool value) {
+              setState(() {
+                showTotalSum = value;
+              });
+              widget.onChanged();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Сторінка резервного копіювання (бекап)
+class BackupPage extends StatelessWidget {
+  const BackupPage({super.key});
+
+  Future<void> _exportDatabase(BuildContext context) async {
+    try {
+      final dbPath = await getDatabasesPath();
+      final path = '$dbPath/parts_warehouse.db';
+      final file = File(path);
+
+      if (await file.exists()) {
+        await Share.shareXFiles([XFile(path)], text: 'Резервна копія складу запчастин');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Файл бази даних не знайдено!')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка експорту: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Резервне копіювання')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Тут ви можете створити резервну копію вашої бази даних, щоб надіслати її в месенджер або зберегти у пам\'ять телефону перед оновленням додатку.',
+              style: TextStyle(fontSize: 15, color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.share),
+              label: const Text('Зберегти / Поділитися базою даних'),
+              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+              onPressed: () => _exportDatabase(context),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -367,7 +554,6 @@ class _AddPartPageState extends State<AddPartPage> {
             ),
             const SizedBox(height: 12),
 
-            // Поле для року випуску або покоління
             TextField(
               controller: _yearCtrl,
               decoration: const InputDecoration(
