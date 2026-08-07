@@ -44,7 +44,19 @@ final Map<String, List<String>> _modelsByBrand = {
 };
 
 void main() {
-  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: HomePage(), theme: ThemeData(brightness: Brightness.dark, useMaterial3: true)));
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: const HomePage(),
+    theme: ThemeData(
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.blueAccent,
+        brightness: Brightness.dark,
+      ),
+      useMaterial3: true,
+    ),
+  ));
 }
 
 class HomePage extends StatefulWidget {
@@ -177,14 +189,12 @@ class _AddPartPageState extends State<AddPartPage> {
             TextField(controller: _qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder())),
             const SizedBox(height: 12),
             
-            // Вибір марки
             Autocomplete<String>(
               initialValue: TextEditingValue(text: _brandCtrl.text),
               optionsBuilder: (v) => v.text.isEmpty ? brandsList : brandsList.where((b) => b.toLowerCase().contains(v.text.toLowerCase())),
               onSelected: (s) {
                 setState(() {
                   _brandCtrl.text = s;
-                  // Очищаємо модель при зміні марки, щоб не плутати моделі різних авто
                   _modelCtrl.text = '';
                 });
               },
@@ -200,7 +210,6 @@ class _AddPartPageState extends State<AddPartPage> {
             ),
             const SizedBox(height: 12),
 
-            // Вибір моделі, суворо залежний від обраної марки
             Autocomplete<String>(
               initialValue: TextEditingValue(text: _modelCtrl.text),
               optionsBuilder: (v) {
@@ -251,7 +260,6 @@ class _AddPartPageState extends State<AddPartPage> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, minimumSize: const Size(double.infinity, 50)),
                 onPressed: () async {
-                  // Підтвердження видалення
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (c) => AlertDialog(
