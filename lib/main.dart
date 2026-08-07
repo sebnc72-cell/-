@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:sqflite/sqflite.dart';
 import 'database_helper.dart';
 
 // Список категорій вузлів
@@ -68,7 +69,7 @@ final Map<String, List<String>> _modelsByBrand = {
   'ZAZ (ЗАЗ)': ['Sens', 'Slavuta', 'Tavria', 'Forza', 'Vida', '968', '1102', '1103']
 };
 
-// Глобальні налаштування додатку
+// Глобальне налаштування відображення суми
 bool showTotalSum = true;
 
 void main() {
