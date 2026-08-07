@@ -3,7 +3,29 @@ import 'database_helper.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: HomePage(), theme: ThemeData(brightness: Brightness.dark, useMaterial3: true)));
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Облік запчастин',
+      // Тепер тут точно активована темна тема
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blueAccent,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: const HomePage(),
+    );
+  }
 }
 
 class HomePage extends StatefulWidget {
@@ -26,10 +48,13 @@ class _HomePageState extends State<HomePage> {
         itemCount: parts.length,
         itemBuilder: (context, i) {
           final p = parts[i];
+          final bool isUniversal = p['brand'] == 'Універсальна';
           return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             child: ListTile(
               title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text('Арт: ${p['article']}\nКількість: ${p['quantity']}\nАвто: ${p['brand']} ${p['carModel']}'),
+              leading: Icon(isUniversal ? Icons.build : Icons.directions_car, color: Colors.blueAccent),
               onTap: () async {
                 final result = await Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p)));
                 if (result == true) _refresh();
@@ -58,7 +83,7 @@ class _AddPartPageState extends State<AddPartPage> {
   final _art = TextEditingController();
   final _qty = TextEditingController(text: '1');
   final _model = TextEditingController();
-  String _brand = '';
+  String _brand = 'Універсальна';
   final List<String> _brands = ['Універсальна', 'Alfa Romeo', 'Audi', 'BMW', 'Case IH', 'Caterpillar', 'Chevrolet', 'Chrysler', 'Citroën', 'CLAAS', 'Dacia', 'DAF', 'Dodge', 'FAW', 'Fendt', 'Fiat', 'Ford', 'Foton', 'GAZ (ГАЗ)', 'GMC', 'Great Wall', 'Honda', 'Hyundai', 'Infiniti', 'Isuzu', 'IVECO', 'JCB', 'Jeep', 'John Deere', 'KAMAZ (КАМАЗ)', 'Kia', 'KRAZ (КрАЗ)', 'Lada / ВАЗ', 'Lancia', 'Land Rover', 'Lexus', 'MAN', 'MAZ (МАЗ)', 'Mazda', 'Mercedes-Benz', 'MINI', 'Mitsubishi', 'MTZ (МТЗ)', 'New Holland', 'Nissan', 'Opel', 'Peugeot', 'Porsche', 'Renault', 'Scania', 'SEAT', 'Skoda', 'Smart', 'SsangYong', 'Subaru', 'Suzuki', 'Tatra', 'Toyota', 'UMZ (ЮМЗ)', 'Volkswagen', 'Volvo', 'XTZ (ХТЗ)', 'YTO', 'ZAZ (ЗАЗ)'];
 
   @override
@@ -100,7 +125,7 @@ class _AddPartPageState extends State<AddPartPage> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                final data = {'name': _name.text, 'article': _art.text, 'quantity': int.tryParse(_qty.text) ?? 1, 'brand': _brand.isEmpty ? 'Універсальна' : _brand, 'carModel': _model.text};
+                final data = {'name': _name.text, 'article': _art.text, 'quantity': int.tryParse(_qty.text) ?? 1, 'brand': _brand, 'carModel': _model.text};
                 if (widget.part == null) await DatabaseHelper.instance.insertPart(data);
                 else { data['id'] = widget.part!['id']; await DatabaseHelper.instance.updatePart(data); }
                 if (mounted) Navigator.pop(context, true);
@@ -109,7 +134,7 @@ class _AddPartPageState extends State<AddPartPage> {
             ),
             if (widget.part != null) ...[
               const SizedBox(height: 10),
-              ElevatedButton(onPressed: () async { await DatabaseHelper.instance.deletePart(widget.part!['id']); if (mounted) Navigator.pop(context, true); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Видалити')),
+              ElevatedButton(onPressed: () async { await DatabaseHelper.instance.deletePart(widget.part!['id']); if (mounted) Navigator.pop(context, true); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), child: const Text('Видалити')),
             ]
           ],
         ),
