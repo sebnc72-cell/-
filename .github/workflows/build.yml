@@ -19,7 +19,6 @@ jobs:
           
       - name: Auto increment version
         run: |
-          # Автоматично збільшуємо номер білду після плюса в pubspec.yaml
           python3 -c "
           import re
           with open('pubspec.yaml', 'r') as f:
@@ -37,6 +36,22 @@ jobs:
           "
           
       - run: flutter create . --platforms=android --project-name=my_app
+
+      - name: Fix Kotlin Version Conflict
+        run: |
+          BUILD_GRADLE="android/app/build.gradle"
+          if [ -f "$BUILD_GRADLE" ]; then
+            echo "Adding resolution strategy to build.gradle"
+            sed -i '/android {/a \
+            configurations.all {\
+                resolutionStrategy {\
+                    force '\''org.jetbrains.kotlin:kotlin-stdlib:1.8.10'\''\
+                    force '\''org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.10'\''\
+                    force '\''org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.10'\''\
+                }\
+            }' "$BUILD_GRADLE"
+          fi
+
       - run: flutter pub get
       - run: flutter build apk --release
       
