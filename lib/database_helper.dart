@@ -8,7 +8,7 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('parts_database_v4.db');
+    _database = await _initDB('parts_database_v5.db');
     return _database!;
   }
 
@@ -19,7 +19,6 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    // brand - марка (список), carModel - конкретна модель (вручну)
     await db.execute('''
     CREATE TABLE parts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +34,16 @@ class DatabaseHelper {
   Future<int> insertPart(Map<String, dynamic> partData) async {
     final db = await instance.database;
     return await db.insert('parts', partData);
+  }
+
+  Future<int> updatePart(Map<String, dynamic> partData) async {
+    final db = await instance.database;
+    return await db.update('parts', partData, where: 'id = ?', whereArgs: [partData['id']]);
+  }
+
+  Future<int> deletePart(int id) async {
+    final db = await instance.database;
+    return await db.delete('parts', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<List<Map<String, dynamic>>> fetchParts() async {
