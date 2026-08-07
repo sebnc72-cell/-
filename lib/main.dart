@@ -22,7 +22,6 @@ class _HomePageState extends State<HomePage> {
 
   void _refresh() async {
     final data = await DatabaseHelper.instance.fetchParts();
-    // Сортуємо дані за маркою авто (brand)
     data.sort((a, b) => (a['brand'] ?? 'Універсальна').compareTo(b['brand'] ?? 'Універсальна'));
     setState(() {
       allParts = data;
@@ -57,9 +56,11 @@ class _HomePageState extends State<HomePage> {
               itemCount: filteredParts.length,
               itemBuilder: (context, i) {
                 final p = filteredParts[i];
+                final bool isUniversal = p['brand'] == 'Універсальна';
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: ListTile(
+                    leading: Icon(isUniversal ? Icons.build : Icons.directions_car, color: Colors.blueAccent),
                     title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text('Авто: ${p['brand']} ${p['carModel']}\nАрт: ${p['article']} | К-сть: ${p['quantity']}'),
                     onTap: () async {
@@ -81,7 +82,6 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// === КЛАС ДОДАВАННЯ (залишаємо без змін) ===
 class AddPartPage extends StatefulWidget {
   final Map<String, dynamic>? part;
   const AddPartPage({super.key, this.part});
