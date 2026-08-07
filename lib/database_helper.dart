@@ -1,5 +1,5 @@
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2, // Збільшуємо версію, щоб оновити таблицю
+      version: 3, // Збільшуємо версію до 3, щоб гарантовано додати carYear
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -36,17 +36,21 @@ class DatabaseHelper {
         minQuantity INTEGER,
         price REAL,
         brand TEXT,
-        carModel TEXT
+        carModel TEXT,
+        carYear TEXT
       )
     ''');
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Автоматично додаємо нові поля до старої бази без її видалення
       await db.execute("ALTER TABLE parts ADD COLUMN category TEXT");
       await db.execute("ALTER TABLE parts ADD COLUMN minQuantity INTEGER DEFAULT 0");
       await db.execute("ALTER TABLE parts ADD COLUMN price REAL DEFAULT 0.0");
+    }
+    if (oldVersion < 3) {
+      // Додаємо поле року випуску/покоління до існуючих баз даних
+      await db.execute("ALTER TABLE parts ADD COLUMN carYear TEXT");
     }
   }
 
