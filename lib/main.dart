@@ -117,6 +117,7 @@ class _HomePageState extends State<HomePage> {
           (p['article'] ?? '').toString().toLowerCase().contains(q) ||
           (p['brand'] ?? '').toString().toLowerCase().contains(q) ||
           (p['carModel'] ?? '').toString().toLowerCase().contains(q) ||
+          (p['carYear'] ?? '').toString().toLowerCase().contains(q) ||
           (p['category'] ?? '').toString().toLowerCase().contains(q)).toList();
     }
   }
@@ -151,7 +152,7 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               decoration: const InputDecoration(
-                labelText: 'Пошук (назва, арт, марка, модель, категорія)', 
+                labelText: 'Пошук (назва, арт, марка, модель, рік, категорія)', 
                 prefixIcon: Icon(Icons.search), 
                 border: OutlineInputBorder()
               ),
@@ -164,11 +165,15 @@ class _HomePageState extends State<HomePage> {
               itemBuilder: (context, i) {
                 final p = filteredParts[i];
                 final brand = p['brand'] ?? '';
+                final carModel = p['carModel'] ?? '';
+                final carYear = p['carYear'] ?? '';
                 final category = p['category'] ?? 'Загальне';
                 final qty = p['quantity'] ?? 1;
                 final minQty = p['minQuantity'] ?? 0;
                 final price = (p['price'] as num?)?.toDouble() ?? 0.0;
                 final isLowStock = qty <= minQty;
+
+                final carDetails = [brand, carModel, carYear].where((e) => e.isNotEmpty).join(' ');
 
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -193,7 +198,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                     subtitle: Text(
-                      'Категорія: $category\nАвто: $brand ${p['carModel']}\nАрт: ${p['article']} | К-сть: $qty шт. | Ціна: $price грн',
+                      'Категорія: $category\nАвто: $carDetails\nАрт: ${p['article']} | К-сть: $qty шт. | Ціна: $price грн',
                     ),
                     isThreeLine: true,
                     onTap: () async {
@@ -231,6 +236,7 @@ class _AddPartPageState extends State<AddPartPage> {
   final _price = TextEditingController(text: '0');
   final _brandCtrl = TextEditingController();
   final _modelCtrl = TextEditingController();
+  final _yearCtrl = TextEditingController();
   
   String _selectedCategory = 'Загальне';
   List<String> _existingPartNames = [];
@@ -247,6 +253,7 @@ class _AddPartPageState extends State<AddPartPage> {
       _price.text = (widget.part!['price'] ?? 0).toString();
       _brandCtrl.text = widget.part!['brand'] ?? '';
       _modelCtrl.text = widget.part!['carModel'] ?? '';
+      _yearCtrl.text = widget.part!['carYear'] ?? '';
       _selectedCategory = widget.part!['category'] ?? 'Загальне';
     }
   }
@@ -358,6 +365,17 @@ class _AddPartPageState extends State<AddPartPage> {
                 );
               },
             ),
+            const SizedBox(height: 12),
+
+            // Поле для року випуску або покоління
+            TextField(
+              controller: _yearCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Рік випуску / Покоління (напр. 2008 або B6)', 
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.calendar_today),
+              ),
+            ),
 
             const SizedBox(height: 20),
             ElevatedButton(
@@ -375,6 +393,7 @@ class _AddPartPageState extends State<AddPartPage> {
                   'price': double.tryParse(_price.text.trim()) ?? 0.0,
                   'brand': _brandCtrl.text.trim(),
                   'carModel': _modelCtrl.text.trim(),
+                  'carYear': _yearCtrl.text.trim(),
                 };
                 if (widget.part == null) {
                   await DatabaseHelper.instance.insertPart(data);
