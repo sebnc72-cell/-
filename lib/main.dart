@@ -6,62 +6,24 @@ import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'database_helper.dart';
+import 'dart:convert';
 
-// Список категорій вузлів
-final List<String> _categoriesList = [
+// Початкові категорії за замовчуванням
+List<String> _categoriesList = [
   'Загальне', 'Двигун', 'Підвіска та ходова', 'Гальмівна система',
   'Фільтри та розхідники', 'Електрика', 'Трансмісія та КПП',
   'Мастила та рідини', 'Кузов та оптика', 'Інструменти та обладнання'
 ];
 
-// Широкий словник марок і моделей
-final Map<String, List<String>> _modelsByBrand = {
+// Початковий словник марок і моделей
+Map<String, List<String>> _modelsByBrand = {
   'Alfa Romeo': ['145', '146', '147', '155', '156', '159', '164', '166', 'Giulietta', 'Giulia', 'Stelvio', 'MiTo', 'GT', 'Tonale'],
   'Audi': ['80', '90', '100', '200', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q4', 'Q5', 'Q7', 'Q8', 'TT', 'R8', 'RS3', 'RS4', 'RS6'],
   'BMW': ['E30', 'E32', 'E34', 'E36', 'E38', 'E39', 'E46', 'E60', 'E63', 'E65', 'E81', 'E82', 'E83', 'E84', 'E87', 'E90', 'E91', 'E92', 'E93', 'F10', 'F11', 'F15', 'F20', 'F25', 'F30', 'F31', 'G01', 'G05', 'G20', 'G30', 'G07', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7'],
   'Case IH': ['Puma', 'Magnum', 'Maxxum', 'Optum', 'Steiger', 'Farmall', 'Quantum', 'Vestrum'],
   'Caterpillar': ['312', '315', '320', '323', '325', '330', '422', '428', '432', '434', 'D5', 'D6', 'D7', 'D8', '950', '966'],
-  'Chevrolet': ['Aveo', 'Lacetti', 'Niva', 'Cruze', 'Epica', 'Tacuma', 'Captiva', 'Volt', 'Spark', 'Malibu', 'Orlando', 'Tahoe'],
-  'Chrysler': ['Voyager', 'Grand Voyager', 'PT Cruiser', '300C', 'Sebring', 'Pacifica', 'Crossfire'],
-  'Citroën': ['Berlingo', 'Jumper', 'Jumpy', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C8', 'Xsara', 'C-Elysee', 'Nemo', 'Saxo', 'Xantia', 'ZX'],
-  'CLAAS': ['Lexion', 'Mega', 'Tucano', 'Axion', 'Arion', 'Atos', 'Dominator', 'Medion'],
-  'Dacia': ['Logan', 'Duster', 'Sandero', 'Dokker', 'Lodgy', 'Spring', 'Solenza'],
-  'DAF': ['XF 95', 'XF 105', 'XF 106', 'CF 65', 'CF 75', 'CF 85', 'LF 45', 'LF 55', 'XG', 'XG+'],
-  'Dodge': ['Caliber', 'Journey', 'RAM 1500', 'RAM 2500', 'Nitro', 'Charger', 'Challenger', 'Dart', 'Grand Caravan'],
-  'Fiat': ['Doblo', 'Ducato', 'Fiorino', 'Scudo', 'Punto', 'Tipo', 'Bravo', 'Linea', 'Freemont', 'Uno', 'Stilo', 'Multipla', 'Palio', 'Croma'],
-  'Ford': ['Transit', 'Tourneo', 'Focus', 'Mondeo', 'Fiesta', 'Connect', 'Kuga', 'Fusion', 'Cargo', 'Edge', 'Explorer', 'Escort', 'Sierra', 'Scorpio', 'Ka', 'C-Max', 'S-Max', 'Ranger'],
-  'GAZ (ГАЗ)': ['3302 (Газель)', '3221 (Соболь)', '2705', '53', '66', '3307', 'Волга 3110', 'Волга 31105', 'Валдай', 'Next'],
-  'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Jazz', 'Pilot', 'Legend', 'Prelude', 'Logo', 'FR-V'],
-  'Hyundai': ['Accent', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'H-1', 'i10', 'i20', 'i30', 'i40', 'Matrix', 'Terracan', 'Galloper', 'Getz', 'Coupe'],
-  'IVECO': ['Daily', 'Stralis', 'Eurocargo', 'Trakker', 'S-Way', 'EuroStar', 'EuroTech'],
-  'JCB': ['3CX', '4CX', 'Fastrac', 'Teletruk', '531-70', '535-95', '8018', 'JS200'],
-  'Jeep': ['Grand Cherokee', 'Cherokee', 'Renegade', 'Wrangler', 'Compass', 'Patriot', 'Commander'],
-  'John Deere': ['6000 series', '7000 series', '8000 series', '9000 series', 'S-Series', '5E', '6M', '7R', '8R'],
-  'KAMAZ (КАМАЗ)': ['5320', '65115', '5490', '4310', '5511', '6520', '5410', '53212'],
-  'Kia': ['Ceed', 'Sportage', 'Sorento', 'Rio', 'Cerato', 'Magentis', 'Soul', 'Optima', 'Carnival', 'Picanto', 'Venga', 'Carens', 'Stinger'],
-  'Lada / ВАЗ': ['2101', '2102', '2103', '2104', '2105', '2106', '2107', '2108', '2109', '21099', '2110', '2111', '2112', 'Priora', 'Kalina', 'Granta', 'Niva 4x4', 'Vesta', 'Largus'],
-  'Land Rover': ['Defender', 'Discovery 1', 'Discovery 2', 'Discovery 3', 'Discovery 4', 'Discovery 5', 'Range Rover', 'Freelander', 'Velar', 'Evoque'],
-  'Lexus': ['RX 300', 'RX 330', 'RX 350', 'LX 470', 'LX 570', 'GS 300', 'IS 200', 'IS 250', 'NX 200', 'ES 300', 'ES 350', 'LS 430'],
-  'MAN': ['TGA', 'TGS', 'TGX', 'F2000', 'LE', 'TGM', 'TGL', 'Commander'],
-  'MAZ (МАЗ)': ['5440', '6430', '5551', '4370 (Зубренок)', '103', '5432', '5516'],
-  'Mazda': ['2', '3', '5', '6', 'Demio', 'Premacy', 'BT-50', 'CX-3', 'CX-5', 'CX-7', 'CX-9', 'Tribute', '323', '626', 'MPV'],
-  'Mercedes-Benz': ['Sprinter', 'Vito', 'Viano', 'Atego', 'Actros', 'W124', 'W210', 'W202', 'W203', 'W211', 'W220', 'W212', 'GL', 'ML', 'A-Class', 'C-Class', 'E-Class', 'S-Class', 'G-Class', 'CLA', 'CLS', 'GLA', 'GLE', 'GLC'],
-  'Mitsubishi': ['L200', 'Pajero', 'Pajero Sport', 'Outlander', 'Colt', 'Lancer', 'Galant', 'ASX', 'Grandis', 'Carisma', 'Space Star', 'Eclipse Cross'],
   'MTZ (МТЗ)': ['80', '82', '82.1', '892', '1025', '1221', '1523', '3022', '920', '952', '1021'],
-  'New Holland': ['T7', 'T8', 'T9', 'CR', 'CX', 'T5', 'T6', 'TC'],
-  'Nissan': ['Navara', 'Patrol', 'Qashqai', 'X-Trail', 'Primastar', 'Interstar', 'Almera', 'Maxima', 'Note', 'Juke', 'Leaf', 'Tiida', 'Micra', 'Pathfinder', 'Terrano', 'Primera'],
-  'Opel': ['Zafira A', 'Zafira B', 'Zafira C', 'Astra F', 'Astra G', 'Astra H', 'Astra J', 'Vectra A', 'Vectra B', 'Vectra C', 'Insignia', 'Combo', 'Vivaro', 'Movano', 'Omega A', 'Omega B', 'Corsa B', 'Corsa C', 'Corsa D', 'Meriva A', 'Meriva B', 'Agila', 'Frontera'],
-  'Peugeot': ['Partner', 'Boxer', 'Expert', '308', '406', '407', '207', '3008', '508', '206', '107', '208', '408', '5008'],
-  'Renault': ['Kangoo', 'Master', 'Trafic', 'Megane', 'Logan', 'Scenic', 'Premium', 'Magnum', 'Duster', 'Symbol', 'Fluence', 'Koleos', 'Laguna', 'Espace', 'Clio', 'Modus'],
-  'Scania': ['R-series', 'G-series', 'P-series', 'Streamline', 'Next Gen', 'S-series', '114', '124'],
-  'Skoda': ['Octavia A4', 'Octavia A5', 'Octavia A7', 'Fabia', 'Superb', 'Rapid', 'Yeti', 'Kodiaq', 'Karoq', 'Roomster', 'Felicia', 'Citigo'],
-  'Subaru': ['Forester', 'Outback', 'Impreza', 'Legacy', 'Tribeca', 'XV', 'Crosstrek', 'B9', 'Justy'],
-  'Suzuki': ['Grand Vitara', 'Vitara', 'SX4', 'Jimny', 'Swift', 'Baleno', 'Ignis', 'Liana'],
-  'Toyota': ['Land Cruiser 80', 'Land Cruiser 100', 'Land Cruiser 200', 'Land Cruiser 300', 'Prado 90', 'Prado 120', 'Prado 150', 'Hilux', 'Corolla', 'Camry', 'Hiace', 'Avensis', 'RAV4', 'Yaris', 'Auris', 'Prius', 'Celica', 'Carina'],
-  'Volkswagen': ['Transporter T4', 'Transporter T5', 'Transporter T6', 'Caddy', 'Crafter', 'Golf 2', 'Golf 3', 'Golf 4', 'Golf 5', 'Golf 6', 'Golf 7', 'Passat B3', 'Passat B4', 'Passat B5', 'Passat B6', 'Passat B7', 'Passat B8', 'LT', 'Touareg', 'Tiguan', 'Polo', 'Jetta', 'Bora', 'Sharan', 'Touran'],
-  'Volvo': ['FH12', 'FH16', 'FM', 'XC60', 'XC90', 'S60', 'S80', 'V70', 'S40', 'V40', 'XC70'],
-  'XTZ (ХТЗ)': ['T-150K', 'T-150', 'XZ-1613', '243К', '17221'],
-  'ZAZ (ЗАЗ)': ['Sens', 'Slavuta', 'Tavria', 'Forza', 'Vida', '968', '1102', '1103']
+  'Opel': ['Zafira A', 'Zafira B', 'Zafira C', 'Astra F', 'Astra G', 'Astra H', 'Astra J', 'Vectra A', 'Vectra B', 'Vectra C', 'Insignia', 'Combo', 'Vivaro', 'Movano'],
 };
 
 // Налаштування додатку
@@ -70,7 +32,27 @@ ThemeMode currentThemeMode = ThemeMode.dark;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _loadCustomDictionaries();
   runApp(const MyApp());
+}
+
+// Завантаження кастомних списків із пам'яті
+Future<void> _loadCustomDictionaries() async {
+  final prefs = await SharedPreferences.getInstance();
+  
+  showTotalSum = prefs.getBool('showTotalSum') ?? true;
+  
+  final savedCategories = prefs.getString('custom_categories');
+  if (savedCategories != null) {
+    List decoded = jsonDecode(savedCategories);
+    _categoriesList = decoded.map((e) => e.toString()).toList();
+  }
+
+  final savedBrands = prefs.getString('custom_brands');
+  if (savedBrands != null) {
+    Map decoded = jsonDecode(savedBrands);
+    _modelsByBrand = decoded.map((key, value) => MapEntry(key.toString(), (value as List).map((e) => e.toString()).toList()));
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -81,7 +63,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  void updateAppSettings() {
+  void updateAppSettings() async {
+    await _loadCustomDictionaries();
     setState(() {});
   }
 
@@ -301,6 +284,130 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// Екран редагування довідників (Категорії та Марки)
+class EditDictionariesPage extends StatefulWidget {
+  const EditDictionariesPage({super.key});
+
+  @override
+  State<EditDictionariesPage> createState() => _EditDictionariesPageState();
+}
+
+class _EditDictionariesPageState extends State<EditDictionariesPage> {
+  void _addCategory() async {
+    final ctrl = TextEditingController();
+    final res = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Додати категорію'),
+        content: TextField(controller: ctrl, decoration: const InputDecoration(labelText: 'Назва категорії')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: const Text('Додати')),
+        ],
+      ),
+    );
+    if (res != null && res.isNotEmpty) {
+      setState(() {
+        _categoriesList.add(res);
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_categories', jsonEncode(_categoriesList));
+    }
+  }
+
+  void _addBrand() async {
+    final ctrl = TextEditingController();
+    final res = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Додати марку/техніку'),
+        content: TextField(controller: ctrl, decoration: const InputDecoration(labelText: 'Назва бренду')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: const Text('Додати')),
+        ],
+      ),
+    );
+    if (res != null && res.isNotEmpty) {
+      setState(() {
+        if (!_modelsByBrand.containsKey(res)) {
+          _modelsByBrand[res] = [];
+        }
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Керування словниками'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Категорії'),
+              Tab(text: 'Марки техніки'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            ListView.builder(
+              itemCount: _categoriesList.length,
+              itemBuilder: (context, index) {
+                final cat = _categoriesList[index];
+                return ListTile(
+                  title: Text(cat),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    onPressed: () async {
+                      setState(() {
+                        _categoriesList.removeAt(index);
+                      });
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('custom_categories', jsonEncode(_categoriesList));
+                    },
+                  ),
+                );
+              },
+            ),
+            ListView.builder(
+              itemCount: _modelsByBrand.keys.length,
+              itemBuilder: (context, index) {
+                String brand = _modelsByBrand.keys.elementAt(index);
+                return ListTile(
+                  title: Text(brand),
+                  subtitle: Text('Моделей: ${_modelsByBrand[brand]?.length ?? 0}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    onPressed: () async {
+                      setState(() {
+                        _modelsByBrand.remove(brand);
+                      });
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+                    },
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            // Можна додати категорію або бренд залежно від логіки
+            _addBrand();
+          },
+          child: const Icon(Icons.add),
+        ),
+      ),
+    );
+  }
+}
+
 // Редагований профіль
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -389,12 +496,24 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(title: const Text('Налаштування')),
       body: ListView(
         children: [
+          ListTile(
+            leading: const Icon(Icons.edit_note, color: Colors.blueAccent),
+            title: const Text('Редагувати категорії та марки техніки'),
+            subtitle: const Text('Додавайте власні категорії під аграрну чи іншу сферу'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (c) => const EditDictionariesPage()));
+            },
+          ),
+          const Divider(),
           SwitchListTile(
             title: const Text('Показувати загальну суму у верхньому кутку'),
             subtitle: const Text('Відображати загальну вартість всіх деталей на складі'),
             value: showTotalSum,
-            onChanged: (bool value) {
+            onChanged: (bool value) async {
               setState(() { showTotalSum = value; });
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('showTotalSum', value);
               widget.onChanged();
             },
           ),
@@ -435,20 +554,15 @@ class BackupPage extends StatelessWidget {
     }
   }
 
-  // Функція імпорту (відновлення) бази даних
   Future<void> _importDatabase(BuildContext context) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-      );
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
 
       if (result != null && result.files.single.path != null) {
         final selectedFile = File(result.files.single.path!);
-        
         final dbPath = await getDatabasesPath();
         final path = '$dbPath/parts_warehouse.db';
 
-        // Копіюємо обраний файл поверх робочої бази
         await selectedFile.copy(path);
 
         if (context.mounted) {
@@ -510,7 +624,6 @@ class BackupPage extends StatelessWidget {
               onPressed: () => _exportDatabase(context),
             ),
             const SizedBox(height: 15),
-            // Кнопка Імпорту
             ElevatedButton.icon(
               icon: const Icon(Icons.download, color: Colors.amberAccent),
               label: const Text('Відновити з файлу (Імпорт бази)'),
@@ -567,7 +680,7 @@ class _AddPartPageState extends State<AddPartPage> {
     _brandCtrl = TextEditingController(text: widget.part?['brand'] ?? '');
     _modelCtrl = TextEditingController(text: widget.part?['carModel'] ?? '');
     _yearCtrl = TextEditingController(text: widget.part?['carYear'] ?? '');
-    _selectedCategory = widget.part?['category'] ?? 'Загальне';
+    _selectedCategory = widget.part?['category'] ?? (_categoriesList.isNotEmpty ? _categoriesList.first : 'Загальне');
 
     _loadExistingPartNames();
   }
@@ -635,7 +748,7 @@ class _AddPartPageState extends State<AddPartPage> {
             const SizedBox(height: 12),
 
             DropdownButtonFormField<String>(
-              value: _categoriesList.contains(_selectedCategory) ? _selectedCategory : 'Загальне',
+              value: _categoriesList.contains(_selectedCategory) ? _selectedCategory : (_categoriesList.isNotEmpty ? _categoriesList.first : null),
               decoration: const InputDecoration(labelText: 'Категорія (вузол)', border: OutlineInputBorder()),
               items: _categoriesList.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
               onChanged: (val) {
