@@ -8,63 +8,60 @@ import 'package:file_picker/file_picker.dart';
 import 'database_helper.dart';
 import 'dart:convert';
 
-// Початкові категорії за замовчуванням
-List<String> _categoriesList = [
-  'Загальне', 'Двигун', 'Підвіска та ходова', 'Гальмівна система',
-  'Фільтри та розхідники', 'Електрика', 'Трансмісія та КПП',
-  'Мастила та рідини', 'Кузов та оптика', 'Інструменти та обладнання'
-];
-
-// Повний словник марок і моделей техніки
-Map<String, List<String>> _modelsByBrand = {
-  'Alfa Romeo': ['145', '146', '147', '155', '156', '159', '164', '166', 'Giulietta', 'Giulia', 'Stelvio', 'MiTo', 'GT', 'Tonale'],
-  'Audi': ['80', '90', '100', '200', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q4', 'Q5', 'Q7', 'Q8', 'TT', 'R8', 'RS3', 'RS4', 'RS6'],
-  'BMW': ['E30', 'E32', 'E34', 'E36', 'E38', 'E39', 'E46', 'E60', 'E63', 'E65', 'E81', 'E82', 'E83', 'E84', 'E87', 'E90', 'E91', 'E92', 'E93', 'F10', 'F11', 'F15', 'F20', 'F25', 'F30', 'F31', 'G01', 'G05', 'G20', 'G30', 'G07', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7'],
-  'Case IH': ['Puma', 'Magnum', 'Maxxum', 'Optum', 'Steiger', 'Farmall', 'Quantum', 'Vestrum'],
-  'Caterpillar': ['312', '315', '320', '323', '325', '330', '422', '428', '432', '434', 'D5', 'D6', 'D7', 'D8', '950', '966'],
-  'Chevrolet': ['Aveo', 'Lacetti', 'Niva', 'Cruze', 'Epica', 'Tacuma', 'Captiva', 'Volt', 'Spark', 'Malibu', 'Orlando', 'Tahoe'],
-  'Chrysler': ['Voyager', 'Grand Voyager', 'PT Cruiser', '300C', 'Sebring', 'Pacifica', 'Crossfire'],
-  'Citroën': ['Berlingo', 'Jumper', 'Jumpy', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C8', 'Xsara', 'C-Elysee', 'Nemo', 'Saxo', 'Xantia', 'ZX'],
-  'CLAAS': ['Lexion', 'Mega', 'Tucano', 'Axion', 'Arion', 'Atos', 'Dominator', 'Medion'],
-  'Dacia': ['Logan', 'Duster', 'Sandero', 'Dokker', 'Lodgy', 'Spring', 'Solenza'],
-  'DAF': ['XF 95', 'XF 105', 'XF 106', 'CF 65', 'CF 75', 'CF 85', 'LF 45', 'LF 55', 'XG', 'XG+'],
-  'Dodge': ['Caliber', 'Journey', 'RAM 1500', 'RAM 2500', 'Nitro', 'Charger', 'Challenger', 'Dart', 'Grand Caravan'],
-  'Fiat': ['Doblo', 'Ducato', 'Fiorino', 'Scudo', 'Punto', 'Tipo', 'Bravo', 'Linea', 'Freemont', 'Uno', 'Stilo', 'Multipla', 'Palio', 'Croma'],
-  'Ford': ['Transit', 'Tourneo', 'Focus', 'Mondeo', 'Fiesta', 'Connect', 'Kuga', 'Fusion', 'Cargo', 'Edge', 'Explorer', 'Escort', 'Sierra', 'Scorpio', 'Ka', 'C-Max', 'S-Max', 'Ranger'],
-  'GAZ (ГАЗ)': ['3302 (Газель)', '3221 (Соболь)', '2705', '53', '66', '3307', 'Волга 3110', 'Волга 31105', 'Валдай', 'Next'],
-  'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Jazz', 'Pilot', 'Legend', 'Prelude', 'Logo', 'FR-V'],
-  'Hyundai': ['Accent', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'H-1', 'i10', 'i20', 'i30', 'i40', 'Matrix', 'Terracan', 'Galloper', 'Getz', 'Coupe'],
-  'IVECO': ['Daily', 'Stralis', 'Eurocargo', 'Trakker', 'S-Way', 'EuroStar', 'EuroTech'],
-  'JCB': ['3CX', '4CX', 'Fastrac', 'Teletruk', '531-70', '535-95', '8018', 'JS200'],
-  'Jeep': ['Grand Cherokee', 'Cherokee', 'Renegade', 'Wrangler', 'Compass', 'Patriot', 'Commander'],
-  'John Deere': ['6000 series', '7000 series', '8000 series', '9000 series', 'S-Series', '5E', '6M', '7R', '8R'],
-  'KAMAZ (КАМАЗ)': ['5320', '65115', '5490', '4310', '5511', '6520', '5410', '53212'],
-  'Kia': ['Ceed', 'Sportage', 'Sorento', 'Rio', 'Cerato', 'Magentis', 'Soul', 'Optima', 'Carnival', 'Picanto', 'Venga', 'Carens', 'Stinger'],
-  'Lada / ВАЗ': ['2101', '2102', '2103', '2104', '2105', '2106', '2107', '2108', '2109', '21099', '2110', '2111', '2112', 'Priora', 'Kalina', 'Granta', 'Niva 4x4', 'Vesta', 'Largus'],
-  'Land Rover': ['Defender', 'Discovery 1', 'Discovery 2', 'Discovery 3', 'Discovery 4', 'Discovery 5', 'Range Rover', 'Freelander', 'Velar', 'Evoque'],
-  'Lexus': ['RX 300', 'RX 330', 'RX 350', 'LX 470', 'LX 570', 'GS 300', 'IS 200', 'IS 250', 'NX 200', 'ES 300', 'ES 350', 'LS 430'],
-  'MAN': ['TGA', 'TGS', 'TGX', 'F2000', 'LE', 'TGM', 'TGL', 'Commander'],
-  'MAZ (МАЗ)': ['5440', '6430', '5551', '4370 (Зубренок)', '103', '5432', '5516'],
-  'Mazda': ['2', '3', '5', '6', 'Demio', 'Premacy', 'BT-50', 'CX-3', 'CX-5', 'CX-7', 'CX-9', 'Tribute', '323', '626', 'MPV'],
-  'Mercedes-Benz': ['Sprinter', 'Vito', 'Viano', 'Atego', 'Actros', 'W124', 'W210', 'W202', 'W203', 'W211', 'W220', 'W212', 'GL', 'ML', 'A-Class', 'C-Class', 'E-Class', 'S-Class', 'G-Class', 'CLA', 'CLS', 'GLA', 'GLE', 'GLC'],
-  'Mitsubishi': ['L200', 'Pajero', 'Pajero Sport', 'Outlander', 'Colt', 'Lancer', 'Galant', 'ASX', 'Grandis', 'Carisma', 'Space Star', 'Eclipse Cross'],
-  'MTZ (МТЗ)': ['80', '82', '82.1', '892', '1025', '1221', '1523', '3022', '920', '952', '1021'],
-  'New Holland': ['T7', 'T8', 'T9', 'CR', 'CX', 'T5', 'T6', 'TC'],
-  'Nissan': ['Navara', 'Patrol', 'Qashqai', 'X-Trail', 'Primastar', 'Interstar', 'Almera', 'Maxima', 'Note', 'Juke', 'Leaf', 'Tiida', 'Micra', 'Pathfinder', 'Terrano', 'Primera'],
-  'Opel': ['Zafira A', 'Zafira B', 'Zafira C', 'Astra F', 'Astra G', 'Astra H', 'Astra J', 'Vectra A', 'Vectra B', 'Vectra C', 'Insignia', 'Combo', 'Vivaro', 'Movano', 'Omega A', 'Omega B', 'Corsa B', 'Corsa C', 'Corsa D', 'Meriva A', 'Meriva B', 'Agila', 'Frontera'],
-  'Peugeot': ['Partner', 'Boxer', 'Expert', '308', '406', '407', '207', '3008', '508', '206', '107', '208', '408', '5008'],
-  'Renault': ['Kangoo', 'Master', 'Trafic', 'Megane', 'Logan', 'Scenic', 'Premium', 'Magnum', 'Duster', 'Symbol', 'Fluence', 'Koleos', 'Laguna', 'Espace', 'Clio', 'Modus'],
-  'Scania': ['R-series', 'G-series', 'P-series', 'Streamline', 'Next Gen', 'S-series', '114', '124'],
-  'Skoda': ['Octavia A4', 'Octavia A5', 'Octavia A7', 'Fabia', 'Superb', 'Rapid', 'Yeti', 'Kodiaq', 'Karoq', 'Roomster', 'Felicia', 'Citigo'],
-  'Subaru': ['Forester', 'Outback', 'Impreza', 'Legacy', 'Tribeca', 'XV', 'Crosstrek', 'B9', 'Justy'],
-  'Suzuki': ['Grand Vitara', 'Vitara', 'SX4', 'Jimny', 'Swift', 'Baleno', 'Ignis', 'Liana'],
-  'Toyota': ['Land Cruiser 80', 'Land Cruiser 100', 'Land Cruiser 200', 'Land Cruiser 300', 'Prado 90', 'Prado 120', 'Prado 150', 'Hilux', 'Corolla', 'Camry', 'Hiace', 'Avensis', 'RAV4', 'Yaris', 'Auris', 'Prius', 'Celica', 'Carina'],
-  'Volkswagen': ['Transporter T4', 'Transporter T5', 'Transporter T6', 'Caddy', 'Crafter', 'Golf 2', 'Golf 3', 'Golf 4', 'Golf 5', 'Golf 6', 'Golf 7', 'Passat B3', 'Passat B4', 'Passat B5', 'Passat B6', 'Passat B7', 'Passat B8', 'LT', 'Touareg', 'Tiguan', 'Polo', 'Jetta', 'Bora', 'Sharan', 'Touran'],
-  'Volvo': ['FH12', 'FH16', 'FM', 'XC60', 'XC90', 'S60', 'S80', 'V70', 'S40', 'V40', 'XC70'],
-  'XTZ (ХТЗ)': ['T-150K', 'T-150', 'XZ-1613', '243К', '17221'],
-  'ZAZ (ЗАЗ)': ['Sens', 'Slavuta', 'Tavria', 'Forza', 'Vida', '968', '1102', '1103']
+// Готові галузеві шаблони (Бази даних)
+final Map<String, Map<String, dynamic>> industryTemplates = {
+  '🚗 Автомобільний склад': {
+    'categories': [
+      'Загальне', 'Двигун', 'Підвіска та ходова', 'Гальмівна система',
+      'Фільтри та розхідники', 'Електрика', 'Трансмісія та КПП',
+      'Мастила та рідини', 'Кузов та оптика', 'Інструменти та обладнання'
+    ],
+    'brands': {
+      'Audi': ['80', '90', '100', 'A3', 'A4', 'A6', 'Q7'],
+      'BMW': ['E30', 'E34', 'E36', 'E39', 'E46', 'E60', 'F10', 'X5'],
+      'Ford': ['Transit', 'Focus', 'Mondeo', 'Fiesta', 'Kuga'],
+      'Mercedes-Benz': ['Sprinter', 'Vito', 'W124', 'W210', 'Actros'],
+      'Opel': ['Zafira A', 'Zafira B', 'Astra G', 'Astra H', 'Vectra B', 'Vectra C', 'Vivaro'],
+      'Volkswagen': ['Transporter T4', 'Transporter T5', 'Golf 4', 'Golf 5', 'Passat B5', 'Passat B6', 'Tiguan']
+    }
+  },
+  '🚜 Агро / Сільгосптехніка': {
+    'categories': [
+      'Загальне', 'Двигун і паливна', 'Гідравліка', 'Трансмісія та КПП',
+      'На навіску та раму', 'Електрообладнання', 'Шини та диски',
+      'Фільтри та ремені', 'Мастила та спецрідини', 'Підшипники та метизи'
+    ],
+    'brands': {
+      'MTZ (МТЗ)': ['80', '82', '82.1', '892', '1025', '1221', '1523', '3022'],
+      'John Deere': ['6000 series', '7000 series', '8000 series', 'S-Series', '6M', '7R', '8R'],
+      'Case IH': ['Puma', 'Magnum', 'Maxxum', 'Optum', 'Steiger', 'Farmall'],
+      'Caterpillar': ['320', '428', 'D6', 'D7', '950'],
+      'CLAAS': ['Lexion', 'Mega', 'Tucano', 'Axion', 'Arion'],
+      'New Holland': ['T7', 'T8', 'T9', 'CR', 'CX', 'T5'],
+      'XTZ (ХТЗ)': ['T-150K', 'T-150', '17221']
+    }
+  },
+  '🌱 Добрива, насіння та ЗЗР': {
+    'categories': [
+      'Насіння (посівний матеріал)', 'Добрива мінеральні', 'Мікродобрива та стимулятори',
+      'Гербіциди', 'Фунгіциди', 'Інсектициди', 'Протруйники насіння',
+      'Тара та упаковка', 'Зберігання зерна', 'Засоби індивідуального захисту'
+    ],
+    'brands': {
+      'Піонер (Pioneer)': ['Кукурудза', 'Соняшник', 'Ріпак', 'Озима пшениця'],
+      'Сингента (Syngenta)': ['Гербіциди', 'Фунгіциди', 'Інсектициди', 'Протруйники'],
+      'Кернел / Загальне': ['Еліта', '1-ша репродукція', '2-га репродукція'],
+      'Мінеральні добрива': ['Аміачна селітра', 'Карбамид (Учас)', 'КАС-32', 'НПК (NPK) добрива'],
+      'Укравіт': ['Препарати захисту', 'Добрива по листу']
+    }
+  }
 };
 
+// Активні списки
+List<String> _categoriesList = List.from(industryTemplates['🚗 Автомобільний склад']!['categories']);
+Map<String, List<String>> _modelsByBrand = Map.from(industryTemplates['🚗 Автомобільний склад']!['brands']);
+
+// Налаштування додатку
 bool showTotalSum = true;
 ThemeMode currentThemeMode = ThemeMode.dark;
 
@@ -178,7 +175,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Склад запчастин'),
+        title: const Text('Склад запчастин та товарів'),
         actions: [
           if (showTotalSum)
             Center(
@@ -280,7 +277,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   child: ListTile(
                     leading: Icon(
-                      Icons.directions_car, 
+                      Icons.inventory_2, 
                       color: isLowStock ? Colors.redAccent : Colors.blueAccent
                     ),
                     title: Row(
@@ -295,7 +292,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                     subtitle: Text(
-                      'Категорія: $category\nАвто: $carDetails\nАрт: ${p['article']} | К-сть: $qty шт. | Ціна: $price грн',
+                      'Категорія: $category\nОб’єкт/Техніка: $carDetails\nАрт: ${p['article']} | К-сть: $qty шт. | Ціна: $price грн',
                     ),
                     isThreeLine: true,
                     onTap: () async {
@@ -320,7 +317,6 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Сторінка редагування моделей конкретної марки
 class BrandModelsPage extends StatefulWidget {
   final String brand;
   const BrandModelsPage({super.key, required this.brand});
@@ -335,8 +331,8 @@ class _BrandModelsPageState extends State<BrandModelsPage> {
     final res = await showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text('Додати модель для ${widget.brand}'),
-        content: TextField(controller: ctrl, decoration: const InputDecoration(labelText: 'Назва моделі')),
+        title: Text('Додати модифікацію для ${widget.brand}'),
+        content: TextField(controller: ctrl, decoration: const InputDecoration(labelText: 'Назва / підкатегорія')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: const Text('Скасувати')),
           TextButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: const Text('Додати')),
@@ -359,7 +355,7 @@ class _BrandModelsPageState extends State<BrandModelsPage> {
   Widget build(BuildContext context) {
     final models = _modelsByBrand[widget.brand] ?? [];
     return Scaffold(
-      appBar: AppBar(title: Text('Моделі: ${widget.brand}')),
+      appBar: AppBar(title: Text('Елементи: ${widget.brand}')),
       body: ListView.builder(
         itemCount: models.length,
         itemBuilder: (context, index) {
@@ -401,9 +397,7 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
+    _tabController.addListener(() { setState(() {}); });
   }
 
   @override
@@ -439,7 +433,7 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
     final res = await showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Додати марку/техніку'),
+        title: const Text('Додати бренд / напрямок'),
         content: TextField(controller: ctrl, decoration: const InputDecoration(labelText: 'Назва бренду')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: const Text('Скасувати')),
@@ -467,7 +461,7 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
           controller: _tabController,
           tabs: const [
             Tab(text: 'Категорії'),
-            Tab(text: 'Марки техніки'),
+            Tab(text: 'Бренди / Техніка'),
           ],
         ),
       ),
@@ -483,9 +477,7 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
                 trailing: IconButton(
                   icon: const Icon(Icons.delete, color: Colors.redAccent),
                   onPressed: () async {
-                    setState(() {
-                      _categoriesList.removeAt(index);
-                    });
+                    setState(() { _categoriesList.removeAt(index); });
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('custom_categories', jsonEncode(_categoriesList));
                   },
@@ -499,12 +491,9 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
               String brand = _modelsByBrand.keys.elementAt(index);
               return ListTile(
                 title: Text(brand),
-                subtitle: Text('Моделей: ${_modelsByBrand[brand]?.length ?? 0} (натисніть для редагування моделей)'),
+                subtitle: Text('Елементів: ${_modelsByBrand[brand]?.length ?? 0}'),
                 onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (c) => BrandModelsPage(brand: brand)),
-                  );
+                  await Navigator.push(context, MaterialPageRoute(builder: (c) => BrandModelsPage(brand: brand)));
                   setState(() {});
                 },
                 trailing: Row(
@@ -513,19 +502,14 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blueAccent),
                       onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (c) => BrandModelsPage(brand: brand)),
-                        );
+                        await Navigator.push(context, MaterialPageRoute(builder: (c) => BrandModelsPage(brand: brand)));
                         setState(() {});
                       },
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent),
                       onPressed: () async {
-                        setState(() {
-                          _modelsByBrand.remove(brand);
-                        });
+                        setState(() { _modelsByBrand.remove(brand); });
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
                       },
@@ -546,6 +530,73 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
           }
         },
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+// Екран вибору галузевого шаблону
+class TemplateSelectionPage extends StatelessWidget {
+  const TemplateSelectionPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Галузеві шаблони бази')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Оберіть готовий шаблон для вашого складу. Це змінить списки категорій та брендів:',
+            style: TextStyle(fontSize: 15, color: Colors.grey),
+          ),
+          const SizedBox(height: 20),
+          ...industryTemplates.entries.map((entry) {
+            return Card(
+              margin: const EdgeInsets.only(bottom: 15),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(16),
+                title: Text(entry.key, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('Категорій: ${(entry.value['categories'] as List).length} | Брендів: ${(entry.value['brands'] as Map).keys.length}'),
+                ),
+                trailing: ElevatedButton(
+                  child: const Text('Застосувати'),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: const Text('Зміна шаблону'),
+                        content: Text('Застосувати шаблон "${entry.key}"? Ваші поточні словники категорій та брендів будуть оновлені.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Скасувати')),
+                          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Застосувати')),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      _categoriesList = List.from(entry.value['categories']);
+                      _modelsByBrand = Map.from(entry.value['brands']);
+
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('custom_categories', jsonEncode(_categoriesList));
+                      await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Шаблон "${entry.key}" успішно активовано!'), backgroundColor: Colors.green),
+                        );
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -639,9 +690,19 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         children: [
           ListTile(
+            leading: const Icon(Icons.dashboard_customize, color: Colors.amberAccent),
+            title: const Text('Вибрати галузевий шаблон бази'),
+            subtitle: const Text('Авто, Агротехніка або Насіння і Препарати (ЗЗР)'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (c) => const TemplateSelectionPage()));
+            },
+          ),
+          const Divider(),
+          ListTile(
             leading: const Icon(Icons.edit_note, color: Colors.blueAccent),
-            title: const Text('Редагувати категорії та марки техніки'),
-            subtitle: const Text('Додавайте власні категорії та моделі під аграрну чи іншу сферу'),
+            title: const Text('Редагувати категорії та бренди вручну'),
+            subtitle: const Text('Додавайте власні пункти під свої завдання'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (c) => const EditDictionariesPage()));
@@ -650,7 +711,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(),
           SwitchListTile(
             title: const Text('Показувати загальну суму у верхньому кутку'),
-            subtitle: const Text('Відображати загальну вартість всіх деталей на складі'),
+            subtitle: const Text('Відображати загальну вартість всіх товарів на складі'),
             value: showTotalSum,
             onChanged: (bool value) async {
               setState(() { showTotalSum = value; });
@@ -687,7 +748,7 @@ class BackupPage extends StatelessWidget {
       final file = File(path);
 
       if (await file.exists()) {
-        await Share.shareXFiles([XFile(path)], text: 'Резервна копія складу запчастин');
+        await Share.shareXFiles([XFile(path)], text: 'Резервна копія складу');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Файл бази даних не знайдено!')));
       }
@@ -747,6 +808,7 @@ class BackupPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ... решта коду резервного копіювання без змін
     return Scaffold(
       appBar: AppBar(title: const Text('Резервне копіювання та Звіти')),
       body: Padding(
@@ -807,7 +869,7 @@ class _AddPartPageState extends State<AddPartPage> {
   late final TextEditingController _brandCtrl;
   late final TextEditingController _modelCtrl;
   late final TextEditingController _yearCtrl;
-  late final TextEditingController _categoryCtrl; // Додано контролер для категорії
+  late final TextEditingController _categoryCtrl;
   
   List<String> _existingPartNames = [];
 
@@ -817,10 +879,10 @@ class _AddPartPageState extends State<AddPartPage> {
     _nameCtrl = TextEditingController(text: widget.part?['name'] ?? '');
     _art = TextEditingController(text: widget.part?['article'] ?? '');
     
-    // Якщо створюємо нову запчастину, ставимо порожні поля або '1', щоб не видаляти нуль вручну
     final qtyVal = widget.part != null ? (widget.part?['quantity'] ?? 1).toString() : '1';
     final minQtyVal = widget.part != null ? (widget.part?['minQuantity'] ?? 0).toString() : '0';
-    final priceVal = widget.part != null ? (widget.part?['price'] ?? 0).toString() : '';
+    final rawPrice = widget.part?['price'];
+    final priceVal = (rawPrice != null && rawPrice != 0 && rawPrice != 0.0) ? rawPrice.toString() : '';
 
     _qty = TextEditingController(text: qtyVal);
     _minQty = TextEditingController(text: minQtyVal);
@@ -863,7 +925,7 @@ class _AddPartPageState extends State<AddPartPage> {
     final brandsList = _modelsByBrand.keys.toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.part == null ? 'Додати запчастину' : 'Редагувати')),
+      appBar: AppBar(title: Text(widget.part == null ? 'Додати товар / запчастину' : 'Редагувати')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -885,7 +947,7 @@ class _AddPartPageState extends State<AddPartPage> {
                   controller: fieldController,
                   focusNode: fieldFocusNode,
                   decoration: const InputDecoration(
-                    labelText: 'Назва запчастини (пам\'ятає історію)',
+                    labelText: 'Назва товару / препарату / деталі',
                     border: OutlineInputBorder(),
                     suffixIcon: Icon(Icons.history),
                   ),
@@ -897,7 +959,6 @@ class _AddPartPageState extends State<AddPartPage> {
             ),
             const SizedBox(height: 12),
 
-            // Вільно редагована категорія (Autocomplete з підтримкою власних варіантів)
             Autocomplete<String>(
               initialValue: TextEditingValue(text: _categoryCtrl.text),
               optionsBuilder: (TextEditingValue v) {
@@ -927,7 +988,7 @@ class _AddPartPageState extends State<AddPartPage> {
             ),
             const SizedBox(height: 12),
 
-            TextField(controller: _art, decoration: const InputDecoration(labelText: 'Артикул / Код', border: OutlineInputBorder())),
+            TextField(controller: _art, decoration: const InputDecoration(labelText: 'Артикул / Код партії', border: OutlineInputBorder())),
             const SizedBox(height: 12),
 
             Row(
@@ -957,10 +1018,16 @@ class _AddPartPageState extends State<AddPartPage> {
             ),
             const SizedBox(height: 12),
 
+            // Поле ціни з виправленим зникненням нуля при кліку
             TextField(
               controller: _price, 
               keyboardType: TextInputType.number, 
               decoration: const InputDecoration(labelText: 'Ціна за одиницю (грн)', border: OutlineInputBorder()),
+              onTap: () {
+                if (_price.text == '0' || _price.text == '0.0' || _price.text == '0.00') {
+                  _price.clear();
+                }
+              },
             ),
             const SizedBox(height: 12),
             
@@ -980,7 +1047,7 @@ class _AddPartPageState extends State<AddPartPage> {
                 return TextField(
                   controller: fieldController,
                   focusNode: fieldFocusNode,
-                  decoration: const InputDecoration(labelText: 'Марка авто / техніки', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
+                  decoration: const InputDecoration(labelText: 'Марка / Виробник / Напрямок', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
                   onChanged: (v) {
                     _brandCtrl.text = v;
                   },
@@ -1003,7 +1070,7 @@ class _AddPartPageState extends State<AddPartPage> {
                 return TextField(
                   controller: fieldController,
                   focusNode: fieldFocusNode,
-                  decoration: const InputDecoration(labelText: 'Модель (відповідно до марки)', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
+                  decoration: const InputDecoration(labelText: 'Модель / Тип / Препарат', border: OutlineInputBorder(), suffixIcon: Icon(Icons.search)),
                   onChanged: (v) {
                     _modelCtrl.text = v;
                   },
@@ -1015,7 +1082,7 @@ class _AddPartPageState extends State<AddPartPage> {
             TextField(
               controller: _yearCtrl,
               decoration: const InputDecoration(
-                labelText: 'Рік випуску / Покоління (напр. 2008 або B6)', 
+                labelText: 'Рік / Сезон / Покоління (напр. 2026)', 
                 border: OutlineInputBorder(),
                 suffixIcon: Icon(Icons.calendar_today),
               ),
@@ -1025,7 +1092,7 @@ class _AddPartPageState extends State<AddPartPage> {
             ElevatedButton(
               onPressed: () async {
                 if (_nameCtrl.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введіть назву запчастини!')));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введіть назву товару!')));
                   return;
                 }
                 final data = {
