@@ -8,8 +8,8 @@ import 'package:file_picker/file_picker.dart';
 import 'database_helper.dart';
 import 'dart:convert';
 
-// Готові галузеві шаблони
-final Map<String, Map<String, dynamic>> industryTemplates = {
+// Готові галузеві шаблони (тепер можуть оновлюватись через імпорт)
+Map<String, Map<String, dynamic>> industryTemplates = {
   '🚗 Автомобільний склад': {
     'categories': ['Загальне', 'Двигун', 'Підвіска та ходова', 'Гальмівна система', 'Фільтри та розхідники', 'Електрика', 'Трансмісія та КПП', 'Мастила та рідини', 'Кузов та оптика', 'Інструменти та обладнання'],
     'brands': {
@@ -60,6 +60,15 @@ Future<void> _loadCustomDictionaries() async {
   final prefs = await SharedPreferences.getInstance();
   showTotalSum = prefs.getBool('showTotalSum') ?? true;
   
+  // Відновлення кастомних/імпортованих шаблонів
+  final savedTemplates = prefs.getString('industry_templates_json');
+  if (savedTemplates != null) {
+    try {
+      Map decoded = jsonDecode(savedTemplates);
+      industryTemplates = decoded.map((k, v) => MapEntry(k.toString(), Map<String, dynamic>.from(v)));
+    } catch (_) {}
+  }
+
   final savedCategories = prefs.getString('custom_categories');
   if (savedCategories != null) {
     _categoriesList = List<String>.from(jsonDecode(savedCategories));
@@ -540,38 +549,111 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
   }
 }
 
-class TemplateSelectionPage extends StatelessWidget {
+class TemplateSelectionPage extends StatefulWidget {
   const TemplateSelectionPage({super.key});
+
+  @override
+  State<TemplateSelectionPage> createState() => _TemplateSelectionPageState();
+}
+
+class _TemplateSelectionPageState extends State<TemplateSelectionPage> {
+
+  Future<void> _exportTemplates() async {
+    try {
+      final jsonStr = jsonEncode(industryTemplates);
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/industry_templates.json';
+      final file = File(path);
+      await file.writeAsString(jsonStr);
+      await Share.shareXFiles([XFile(path)], text: 'Галузеві шаблони (Мій склад)');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка експорту: $e')));
+      }
+    }
+  }
+
+  Future<void> _importTemplates() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final content = await file.readAsString();
+        Map decoded = jsonDecode(content);
+        
+        industryTemplates = decoded.map((k, v) => MapEntry(k.toString(), Map<String, dynamic>.from(v)));
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('industry_templates_json', jsonEncode(industryTemplates));
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Шаблони успішно оновлено!'), backgroundColor: Colors.green),
+          );
+          setState(() {});
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Помилка імпорту: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Галузеві шаблони')),
+      appBar: AppBar(
+        title: const Text('Галузеві шаблони'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Експортувати шаблони (JSON)',
+            onPressed: _exportTemplates,
+          ),
+          IconButton(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Імпортувати оновлені шаблони',
+            onPressed: _importTemplates,
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: industryTemplates.entries.map((e) {
-          return Card(
-            margin: const EdgeInsets.only(bottom: 15),
-            child: ListTile(
-              title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('Категорій: ${(e.value['categories'] as List).length}'),
-              trailing: ElevatedButton(
-                child: const Text('Вибрати'),
-                onPressed: () async {
-                  _categoriesList = List.from(e.value['categories']);
-                  _modelsByBrand = Map.from(e.value['brands']);
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('custom_categories', jsonEncode(_categoriesList));
-                  await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Шаблон застосовано!'), backgroundColor: Colors.green));
-                    Navigator.pop(context);
-                  }
-                },
+        children: [
+          const Text(
+            'Ви можете експортувати поточні шаблони, надіслати їх мені для оновлення чи додавання нових (напр. продуктового), а потім імпортувати назад.',
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+          const SizedBox(height: 15),
+          ...industryTemplates.entries.map((e) {
+            return Card(
+              margin: const EdgeInsets.only(bottom: 15),
+              child: ListTile(
+                title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('Категорій: ${(e.value['categories'] as List).length} | Брендів: ${(e.value['brands'] as Map).keys.length}'),
+                trailing: ElevatedButton(
+                  child: const Text('Вибрати'),
+                  onPressed: () async {
+                    _categoriesList = List.from(e.value['categories']);
+                    _modelsByBrand = Map.from(e.value['brands']);
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('custom_categories', jsonEncode(_categoriesList));
+                    await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Шаблон "${e.key}" активовано!'), backgroundColor: Colors.green),
+                      );
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ],
       ),
     );
   }
@@ -737,7 +819,6 @@ class _AddPartPageState extends State<AddPartPage> {
                   decoration: const InputDecoration(labelText: 'Категорія', border: OutlineInputBorder(), suffixIcon: Icon(Icons.category)),
                   onChanged: (v) { _cat.text = v; },
                   onTap: () {
-                    // Очищаємо поле категорії при кліку для швидкого введення
                     if (widget.part == null && fieldController.text.isNotEmpty) {
                       fieldController.clear();
                       _cat.clear();
