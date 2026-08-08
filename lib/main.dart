@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
 import 'database_helper.dart';
 
 // Список категорій вузлів
@@ -434,6 +435,37 @@ class BackupPage extends StatelessWidget {
     }
   }
 
+  // Функція імпорту (відновлення) бази даних
+  Future<void> _importDatabase(BuildContext context) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final selectedFile = File(result.files.single.path!);
+        
+        final dbPath = await getDatabasesPath();
+        final path = '$dbPath/parts_warehouse.db';
+
+        // Копіюємо обраний файл поверх робочої бази
+        await selectedFile.copy(path);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Базу успішно відновлено! Перезапустіть додаток.'), backgroundColor: Colors.green),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Помилка імпорту: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _exportToExcel(BuildContext context) async {
     try {
       final parts = await DatabaseHelper.instance.fetchParts();
@@ -476,6 +508,14 @@ class BackupPage extends StatelessWidget {
               label: const Text('Зберегти / Поділитися базою даних'),
               style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
               onPressed: () => _exportDatabase(context),
+            ),
+            const SizedBox(height: 15),
+            // Кнопка Імпорту
+            ElevatedButton.icon(
+              icon: const Icon(Icons.download, color: Colors.amberAccent),
+              label: const Text('Відновити з файлу (Імпорт бази)'),
+              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+              onPressed: () => _importDatabase(context),
             ),
             const SizedBox(height: 30),
             const Text(
