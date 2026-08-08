@@ -8,38 +8,182 @@ import 'package:file_picker/file_picker.dart';
 import 'database_helper.dart';
 import 'dart:convert';
 
-// Готові галузеві шаблони (тепер можуть оновлюватись через імпорт)
+// Максимальні розширені галузеві шаблони (Авто, Агро, ЗЗР, Посівна та ґрунтообробна техніка)
 Map<String, Map<String, dynamic>> industryTemplates = {
   '🚗 Автомобільний склад': {
-    'categories': ['Загальне', 'Двигун', 'Підвіска та ходова', 'Гальмівна система', 'Фільтри та розхідники', 'Електрика', 'Трансмісія та КПП', 'Мастила та рідини', 'Кузов та оптика', 'Інструменти та обладнання'],
+    'categories': [
+      'Загальне',
+      'Двигун і навісне',
+      'Підвіска та ходова',
+      'Гальмівна система',
+      'Фільтри та розхідники',
+      'Електрика та датчики',
+      'Трансмісія, зчеплення та КПП',
+      'Мастила, автохімія та рідини',
+      'Кузов, скло та оптика',
+      'Інструменти та обладнання'
+    ],
     'brands': {
-      'Audi': ['80', '90', '100', 'A3', 'A4', 'A6', 'Q7'],
-      'BMW': ['E30', 'E34', 'E36', 'E39', 'E46', 'E60', 'F10', 'X5'],
-      'Ford': ['Transit', 'Focus', 'Mondeo', 'Fiesta', 'Kuga'],
-      'Mercedes-Benz': ['Sprinter', 'Vito', 'W124', 'W210', 'Actros'],
-      'Opel': ['Zafira A', 'Zafira B', 'Astra G', 'Astra H', 'Vectra B', 'Vectra C', 'Vivaro'],
-      'Volkswagen': ['Transporter T4', 'Transporter T5', 'Golf 4', 'Golf 5', 'Passat B5', 'Passat B6', 'Tiguan']
+      'Audi': ['80', '90', '100', '200', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q5', 'Q7', 'Q8', 'TT'],
+      'BMW': ['E30', 'E34', 'E36', 'E38', 'E39', 'E46', 'E60', 'E65', 'E90', 'F10', 'F30', 'F15', 'G05', 'X1', 'X3', 'X5', 'X6'],
+      'Chevrolet': ['Aveo', 'Lacetti', 'Cruze', 'Captiva', 'Niva', 'Malibu'],
+      'Citroen': ['Berlingo', 'C-Elysee', 'C3', 'C4', 'C5', 'Jumper', 'Jumpy'],
+      'Dacia / Renault Logan': ['Logan', 'Sandero', 'Duster', 'Lodgy'],
+      'Fiat': ['Doblo', 'Ducato', 'Fiorino', 'Grande Punto', 'Scudo', 'Tipo'],
+      'Ford': ['Transit', 'Focus', 'Mondeo', 'Fiesta', 'Kuga', 'Ranger', 'Fusion', 'Connect', 'Escort', 'Sierra'],
+      'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Jazz'],
+      'Hyundai': ['Accent', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'H-1 / Starex'],
+      'Kia': ['Ceed', 'Cerato', 'Rio', 'Sportage', 'Sorento', 'Soul'],
+      'Mazda': ['3', '6', 'CX-5', 'CX-7', '323', '626'],
+      'Mercedes-Benz': ['Sprinter', 'Vito', 'Viano', 'W124', 'W201', 'W202', 'W203', 'W204', 'W210', 'W211', 'W212', 'W220', 'ML-Class', 'Actros', 'Atego'],
+      'Mitsubishi': ['Lancer 9', 'Lancer 10', 'Outlander', 'Pajero', 'L200', 'Colt', 'Galant'],
+      'Nissan': ['Qashqai', 'X-Trail', 'Juke', 'Leaf', 'Navara', 'Almera', 'Primera', 'Patrol'],
+      'Opel': ['Zafira A', 'Zafira B', 'Astra G', 'Astra H', 'Astra J', 'Vectra B', 'Vectra C', 'Vivaro', 'Omega B', 'Combo', 'Corsa', 'Insignia'],
+      'Peugeot': ['Partner', 'Boxer', 'Expert', '206', '207', '307', '308', '406', '407', '3008'],
+      'Renault': ['Master', 'Trafic', 'Megane', 'Logan', 'Scenic', 'Kangoo', 'Duster', 'Symbol', 'Laguna', 'Premium'],
+      'Skoda': ['Octavia Tour', 'Octavia A5', 'Octavia A7', 'Fabia', 'Superb', 'Kodiaq', 'Rapid', 'Roomster', 'Yeti'],
+      'Toyota': ['Camry', 'Corolla', 'RAV4', 'Land Cruiser 100', 'Land Cruiser 200', 'Prado 120', 'Prado 150', 'Hilux', 'Avensis', 'Auris', 'Yaris'],
+      'Volkswagen': ['Transporter T4', 'Transporter T5', 'Transporter T6', 'Caddy', 'Golf 3', 'Golf 4', 'Golf 5', 'Golf 6', 'Golf 7', 'Passat B3', 'Passat B4', 'Passat B5', 'Passat B6', 'Passat B7', 'Passat B8', 'Tiguan', 'Touareg', 'Polo', 'Jetta'],
+      'Volvo': ['XC60', 'XC90', 'S40', 'S60', 'S80', 'V70']
     }
   },
   '🚜 Агро / Сільгосптехніка': {
-    'categories': ['Загальне', 'Двигун і паливна', 'Гідравліка', 'Трансмісія та КПП', 'На навіску та раму', 'Електрообладнання', 'Шини та диски', 'Фільтри та ремені', 'Мастила та спецрідини', 'Підшипники та метизи'],
+    'categories': [
+      'Загальне',
+      'Двигун і паливна система',
+      'Гідравліка та навіска',
+      'Трансмісія та КПП',
+      'Мости та редуктори',
+      'Електрообладнання та датчики',
+      'Шини, диски та ходова',
+      'Фільтри, ремені та РТІ',
+      'Мастила та спецрідини',
+      'Підшипники, сальники та метизи',
+      'Жатки та рабочі органи'
+    ],
     'brands': {
-      'MTZ (МТЗ)': ['80', '82', '82.1', '892', '1025', '1221', '1523', '3022'],
-      'John Deere': ['6000 series', '7000 series', '8000 series', '9000 series', '6M', '7R', '8R'],
-      'Case IH': ['Puma', 'Magnum', 'Maxxum', 'Optum', 'Steiger'],
-      'Caterpillar': ['320', '428', 'D6', 'D7', '950'],
-      'CLAAS': ['Lexion', 'Mega', 'Tucano', 'Axion'],
-      'New Holland': ['T7', 'T8', 'T9', 'CR', 'CX'],
-      'XTZ (ХТЗ)': ['T-150K', 'T-150', '17221']
+      'MTZ (МТЗ)': ['80', '82', '82.1', '892', '1025', '1221', '1523', '2022', '3022', 'Mini-082'],
+      'John Deere': ['6000 series', '7000 series', '8000 series', '9000 series', '6M', '6R', '7R', '8R', '9R', 'S-series (комбайни)'],
+      'Case IH': ['Puma', 'Magnum', 'Maxxum', 'Optum', 'Steiger', 'Axial-Flow (комбайни)'],
+      'New Holland': ['T7', 'T8', 'T9', 'TD5', 'TS', 'CR (комбайни)', 'CX (комбайни)'],
+      'CLAAS': ['Lexion', 'Mega', 'Tucano', 'Trion', 'Axion', 'Arion', 'Atles', 'Scorpion (навантажувачі)'],
+      'Caterpillar (Agri)': ['320', '428', 'D6', 'D7', '950', 'Telehandler TH'],
+      'Massey Ferguson': ['5700', '6700', '7700', '8700'],
+      'Fendt': ['700 Vario', '800 Vario', '900 Vario', '1000 Vario'],
+      'Valtra': ['A-series', 'N-series', 'T-series', 'S-series'],
+      'JCB': ['Fastrac', 'Loadall 531-70', 'Loadall 535-95', 'Loadall 541-70'],
+      'XTZ (ХТЗ)': ['T-150K', 'T-150', '17221', '243К', 'Т-25', 'Т-40'],
+      'YTO': ['X804', 'X904', 'X1054', 'X1204', 'X1304'],
+      'Lovol (Foton)': ['244', '404', '504', '824', '1054', '1304']
     }
   },
   '🌱 Добрива, насіння та ЗЗР': {
-    'categories': ['Насіння', 'Добрива мінеральні', 'Мікродобрива', 'Гербіциди', 'Фунгіциди', 'Інсектициди', 'Протруйники', 'Тара та упаковка', 'Зберігання', 'ЗІЗ'],
+    'categories': [
+      'Насіння кукурудзи',
+      'Насіння соняшнику',
+      'Насіння ріпаку',
+      'Насіння озимої пшениці та ячменю',
+      'Насіння соєвих та бобових культур',
+      'Азотні мінеральні добрива',
+      'Фосфорно-калійні добрива',
+      'Комплексні добрива (NPK)',
+      'Мікродобрива та гумати',
+      'Гербіциди ґрунтові та страхові',
+      'Фунгіциди системні та контактні',
+      'Інсектициди та акарициди',
+      'Протруйники насіння',
+      'Десиканти, прилипачі та ад\'юванти',
+      'Біопрепарати та регулятори росту'
+    ],
     'brands': {
-      'Піонер (Pioneer)': ['Кукурудза', 'Соняшник', 'Ріпак'],
-      'Сингента (Syngenta)': ['Гербіциди', 'Фунгіциди', 'Інсектициди'],
-      'Мінеральні добрива': ['Аміачна селітра', 'Карбамид', 'КАС-32', 'NPK'],
-      'Укравіт': ['Захист', 'Добрива']
+      'Pioneer (Corteva Agriscience)': [
+        'Кукурудза (ФАО 150-450)',
+        'Соняшник (Класичний / Експрес / Сумо)',
+        'Ріпак озимий (Гібриди)'
+      ],
+      'Syngenta (Сингента)': [
+        'Кукурудза (НК / ФАО)',
+        'Соняшник (Оптимус / Суміко)',
+        'Гербіциди (Дуал Голд, Прінтедж)',
+        'Фунгіциди (Амістар, Світч)',
+        'Інсектициди (Карате Зеон, Актеллік)'
+      ],
+      'Limagrain (Лімагрейн)': [
+        'Кукурудза (LG)',
+        'Соняшник (ЛГ під євролайтнінг / експрес)',
+        'Озима пшениця'
+      ],
+      'Euralis / Lidea (Лідеа)': [
+        'Соняшник високоефективний',
+        'Кукурудза на зерно і силос',
+        'Сорго та соя'
+      ],
+      'KWS (КВС)': [
+        'Кукурудза зернова',
+        'Цукрові буряки',
+        'Зернові колосові'
+      ],
+      'Bayer CropScience (Байєр)': [
+        'Протруйники (Максім, Юнта)',
+        'Гербіциди (Аденго, Мастер Діджей)',
+        'Фунгіциди (Солігор, Зантара)',
+        'Інсектициди (Децис, Конфідор)'
+      ],
+      'BASF (Басф)': [
+        'Фунгіциди (Авітор, Рекс Дуо)',
+        'Гербіциди (Євро-Лайтнінг, Пульсар)',
+        'Регулятори росту (Антіглоб)'
+      ],
+      'Corteva / Dow / DuPont': [
+        'Гербіциди (Тітус, Прінтедж, Гезагард)',
+        'Інсектициди'
+      ],
+      'ADAMA (Адама)': [
+        'Комплексний захист зернових',
+        'Гербіциди та фунгіциди'
+      ],
+      'Nufarm (Нуфарм)': [
+        'ЗЗР загальної та спеціальної дії',
+        'Селективні гербіциди'
+      ],
+      'Укравіт (Україна)': [
+        'Гербіциди (Антисапа, Гліфовіт)',
+        'Фунгіциди та інсектициди',
+        'Мікродобрива (Авангард)'
+      ],
+      'Мінеральні добрива (Масові)': [
+        'Аміачна селітра (марка Б)',
+        'Карбамід',
+        'КАС-32 (Карбамідно-аміачна суміш)',
+        'Амофос (12:52)',
+        'Нітроамофоска (16:16:16 / 21:21:21)',
+        'Сульфат амонію',
+        'Калімаг / Калій хлористий'
+      ]
+    }
+  },
+  '⚙️ Ґрунтообробна та посівна техніка': {
+    'categories': [
+      'Рабочі органи (лемеші, долота, лапи)',
+      'Диски борін та стойки',
+      'Культиватори та глибокорозпушувачі',
+      'Плуги та відвали',
+      'Сівалки та висіваючі секції',
+      'Розкидачі добрив',
+      'Обприскувачі та форсунки',
+      'Катки та ущільнювачі',
+      'Гідроциліндри та рукави РВД',
+      'Загальне'
+    ],
+    'brands': {
+      'Horsch': ['Tiger', 'Joker', 'Focus', 'Manto', 'Pronto'],
+      'Vaderstad': ['Carrier', 'Rapid', 'TopDown', 'Cultus', 'Tempo'],
+      'Kuhn': ['Multi-Master', 'Discover', 'Performer', 'Maxima'],
+      'Amazone': ['Catros', 'Cenius', 'D9', 'Condor', 'ZA-M'],
+      'Great Plains': ['Turbo-Max', 'NTA', 'Centurion'],
+      'Lemken': ['Achat', 'Juwel', 'Karat', 'Heliodor', 'Smaragdy'],
+      'John Deere (Seeding/Tillage)': ['750A', '1790', '2210'],
+      'Elvorti (Червона Зірка)': ['Астра', 'Паллада', 'Червона Зірка ПЛН']
     }
   }
 };
@@ -60,7 +204,6 @@ Future<void> _loadCustomDictionaries() async {
   final prefs = await SharedPreferences.getInstance();
   showTotalSum = prefs.getBool('showTotalSum') ?? true;
   
-  // Відновлення кастомних/імпортованих шаблонів
   final savedTemplates = prefs.getString('industry_templates_json');
   if (savedTemplates != null) {
     try {
@@ -80,6 +223,29 @@ Future<void> _loadCustomDictionaries() async {
       jsonDecode(savedBrands).map((k, v) => MapEntry(k.toString(), List<String>.from(v)))
     );
   }
+}
+
+// Універсальна функція для перепитування перед видаленням
+Future<bool> _showConfirmDialog(BuildContext context, String title, String content) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: Text(content),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Скасувати'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+          child: const Text('Видалити'),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
 }
 
 class MyApp extends StatelessWidget {
@@ -324,7 +490,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             leading: const Icon(Icons.dashboard_customize, color: Colors.amberAccent),
             title: const Text('Вибрати галузевий шаблон бази'),
-            subtitle: const Text('Авто, Агро або Насіння і ЗЗР'),
+            subtitle: const Text('Авто, Агро, ЗЗР або Посівна техніка'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TemplateSelectionPage())),
           ),
@@ -400,11 +566,18 @@ class _BrandModelsPageState extends State<BrandModelsPage> {
             trailing: IconButton(
               icon: const Icon(Icons.delete, color: Colors.redAccent),
               onPressed: () async {
-                setState(() {
-                  _modelsByBrand[widget.brand]!.removeAt(index);
-                });
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+                bool confirm = await _showConfirmDialog(
+                  context,
+                  'Видалити елемент?',
+                  'Ви дійсно хочете видалити "$model"?',
+                );
+                if (confirm) {
+                  setState(() {
+                    _modelsByBrand[widget.brand]!.removeAt(index);
+                  });
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+                }
               },
             ),
           );
@@ -506,9 +679,16 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
                 trailing: IconButton(
                   icon: const Icon(Icons.delete, color: Colors.redAccent),
                   onPressed: () async {
-                    setState(() { _categoriesList.removeAt(index); });
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('custom_categories', jsonEncode(_categoriesList));
+                    bool confirm = await _showConfirmDialog(
+                      context,
+                      'Видалити категорію?',
+                      'Ви дійсно хочете видалити категорію "$cat"?',
+                    );
+                    if (confirm) {
+                      setState(() { _categoriesList.removeAt(index); });
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('custom_categories', jsonEncode(_categoriesList));
+                    }
                   },
                 ),
               );
@@ -525,9 +705,16 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
                 trailing: IconButton(
                   icon: const Icon(Icons.delete, color: Colors.redAccent),
                   onPressed: () async {
-                    setState(() { _modelsByBrand.remove(brand); });
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+                    bool confirm = await _showConfirmDialog(
+                      context,
+                      'Видалити бренд?',
+                      'Ви дійсно хочете видалити бренд "$brand"?',
+                    );
+                    if (confirm) {
+                      setState(() { _modelsByBrand.remove(brand); });
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+                    }
                   },
                 ),
               );
@@ -602,6 +789,28 @@ class _TemplateSelectionPageState extends State<TemplateSelectionPage> {
     }
   }
 
+  Future<void> _deleteTemplate(String templateKey) async {
+    bool confirm = await _showConfirmDialog(
+      context,
+      'Видалити шаблон?',
+      'Ви дійсно хочете видалити галузевий шаблон "$templateKey"?',
+    );
+
+    if (confirm) {
+      setState(() {
+        industryTemplates.remove(templateKey);
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('industry_templates_json', jsonEncode(industryTemplates));
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Шаблон "$templateKey" видалено'), backgroundColor: Colors.orange),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -624,7 +833,7 @@ class _TemplateSelectionPageState extends State<TemplateSelectionPage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Ви можете експортувати поточні шаблони, надіслати їх мені для оновлення чи додавання нових (напр. продуктового), а потім імпортувати назад.',
+            'Ви можете вибрати потрібний шаблон, імпортувати/експортувати його або видалити зайвий.',
             style: TextStyle(fontSize: 13, color: Colors.grey),
           ),
           const SizedBox(height: 15),
@@ -634,21 +843,32 @@ class _TemplateSelectionPageState extends State<TemplateSelectionPage> {
               child: ListTile(
                 title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('Категорій: ${(e.value['categories'] as List).length} | Брендів: ${(e.value['brands'] as Map).keys.length}'),
-                trailing: ElevatedButton(
-                  child: const Text('Вибрати'),
-                  onPressed: () async {
-                    _categoriesList = List.from(e.value['categories']);
-                    _modelsByBrand = Map.from(e.value['brands']);
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('custom_categories', jsonEncode(_categoriesList));
-                    await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Шаблон "${e.key}" активовано!'), backgroundColor: Colors.green),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton(
+                      child: const Text('Вибрати'),
+                      onPressed: () async {
+                        _categoriesList = List.from(e.value['categories']);
+                        _modelsByBrand = Map.from(e.value['brands']);
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('custom_categories', jsonEncode(_categoriesList));
+                        await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Шаблон "${e.key}" активовано!'), backgroundColor: Colors.green),
+                          );
+                          Navigator.pop(context);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      tooltip: 'Видалити шаблон',
+                      onPressed: () => _deleteTemplate(e.key),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -934,8 +1154,15 @@ class _AddPartPageState extends State<AddPartPage> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, minimumSize: const Size(double.infinity, 50)),
                 onPressed: () async {
-                  await DatabaseHelper.instance.deletePart(widget.part!['id']);
-                  if (mounted) Navigator.pop(context);
+                  bool confirm = await _showConfirmDialog(
+                    context,
+                    'Видалити товар?',
+                    'Ви дійсно хочете видалити цей товар із бази?',
+                  );
+                  if (confirm) {
+                    await DatabaseHelper.instance.deletePart(widget.part!['id']);
+                    if (mounted) Navigator.pop(context);
+                  }
                 },
                 child: const Text('Видалити', style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
