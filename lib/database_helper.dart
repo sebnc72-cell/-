@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, // Збільшуємо версію до 3, щоб гарантовано додати carYear
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -49,7 +49,6 @@ class DatabaseHelper {
       await db.execute("ALTER TABLE parts ADD COLUMN price REAL DEFAULT 0.0");
     }
     if (oldVersion < 3) {
-      // Додаємо поле року випуску/покоління до існуючих баз даних
       await db.execute("ALTER TABLE parts ADD COLUMN carYear TEXT");
     }
   }
@@ -74,4 +73,161 @@ class DatabaseHelper {
     final db = await database;
     return await db.delete('parts', where: 'id = ?', whereArgs: [id]);
   }
+}
+
+class IndustryTemplates {
+  static final Map<String, dynamic> data = {
+    "🚗 Автомобільний склад": {
+      "categories": [
+        "Загальне",
+        "Двигун і навісне",
+        "Підвіска та ходова",
+        "Гальмівна система",
+        "Фільтри та розхідники",
+        "Електрика та датчики",
+        "Трансмісія, зчеплення та КПП",
+        "Мастила, автохімія та рідини",
+        "Кузов, скло та оптика",
+        "Інструменти та обладнання"
+      ],
+      "brands": {
+        "Audi": ["80", "90", "100", "200", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "Q2", "Q3", "Q5", "Q7", "Q8", "TT"],
+        "BMW": ["E30", "E34", "E36", "E38", "E39", "E46", "E60", "E65", "E90", "F10", "F30", "F15", "G05", "X1", "X3", "X5", "X6"],
+        "Chevrolet": ["Aveo", "Lacetti", "Cruze", "Captiva", "Niva", "Malibu"],
+        "Citroen": ["Berlingo", "C-Elysee", "C3", "C4", "C5", "Jumper", "Jumpy"],
+        "Dacia / Renault Logan": ["Logan", "Sandero", "Duster", "Lodgy"],
+        "Fiat": ["Doblo", "Ducato", "Fiorino", "Grande Punto", "Scudo", "Tipo"],
+        "Ford": ["Transit", "Focus", "Mondeo", "Fiesta", "Kuga", "Ranger", "Fusion", "Connect", "Escort", "Sierra"],
+        "Honda": ["Civic", "Accord", "CR-V", "HR-V", "Jazz"],
+        "Hyundai": ["Accent", "Elantra", "Sonata", "Tucson", "Santa Fe", "H-1 / Starex"],
+        "Kia": ["Ceed", "Cerato", "Rio", "Sportage", "Sorento", "Soul"],
+        "Mazda": ["3", "6", "CX-5", "CX-7", "323", "626"],
+        "Mercedes-Benz": ["Sprinter", "Vito", "Viano", "W124", "W201", "W202", "W203", "W204", "W210", "W211", "W212", "W220", "ML-Class", "Actros", "Atego"],
+        "Mitsubishi": ["Lancer 9", "Lancer 10", "Outlander", "Pajero", "L200", "Colt", "Galant"],
+        "Nissan": ["Qashqai", "X-Trail", "Juke", "Leaf", "Navara", "Almera", "Primera", "Patrol"],
+        "Opel": ["Zafira A", "Zafira B", "Astra G", "Astra H", "Astra J", "Vectra B", "Vectra C", "Vivaro", "Omega B", "Combo", "Corsa", "Insignia"],
+        "Peugeot": ["Partner", "Boxer", "Expert", "206", "207", "307", "308", "406", "407", "3008"],
+        "Renault": ["Master", "Trafic", "Megane", "Logan", "Scenic", "Kangoo", "Duster", "Symbol", "Laguna", "Premium"],
+        "Skoda": ["Octavia Tour", "Octavia A5", "Octavia A7", "Fabia", "Superb", "Kodiaq", "Rapid", "Roomster", "Yeti"],
+        "Toyota": ["Camry", "Corolla", "RAV4", "Land Cruiser 100", "Land Cruiser 200", "Prado 120", "Prado 150", "Hilux", "Avensis", "Auris", "Yaris"],
+        "Volkswagen": ["Transporter T4", "Transporter T5", "Transporter T6", "Caddy", "Golf 3", "Golf 4", "Golf 5", "Golf 6", "Golf 7", "Passat B3", "Passat B4", "Passat B5", "Passat B6", "Passat B7", "Passat B8", "Tiguan", "Touareg", "Polo", "Jetta"],
+        "Volvo": ["XC60", "XC90", "S40", "S60", "S80", "V70"]
+      }
+    },
+    "🚜 Агро / Сільгосптехніка": {
+      "categories": [
+        "Загальне",
+        "Двигун і паливна система",
+        "Гідравліка та навіска",
+        "Трансмісія та КПП",
+        "Мости та редуктори",
+        "Електрообладнання та датчики",
+        "Шини, диски та ходова",
+        "Фільтри, ремені та РТІ",
+        "Мастила та спецрідини",
+        "Підшипники, сальники та метизи",
+        "Жатки та рабочі органи"
+      ],
+      "brands": {
+        "MTZ (МТЗ)": ["80", "82", "82.1", "892", "1025", "1221", "1523", "2022", "3022", "Mini-082"],
+        "John Deere": ["6000 series", "7000 series", "8000 series", "9000 series", "6M", "6R", "7R", "8R", "9R", "S-series (комбайни)"],
+        "Case IH": ["Puma", "Magnum", "Maxxum", "Optum", "Steiger", "Axial-Flow (комбайни)"],
+        "New Holland": ["T7", "T8", "T9", "TD5", "TS", "CR (комбайни)", "CX (комбайни)"],
+        "CLAAS": ["Lexion", "Mega", "Tucano", "Trion", "Axion", "Arion", "Atles", "Scorpion (навантажувачі)"],
+        "Caterpillar (Agri)": ["320", "428", "D6", "D7", "950", "Telehandler TH"],
+        "Massey Ferguson": ["5700", "6700", "7700", "8700"],
+        "Fendt": ["700 Vario", "800 Vario", "900 Vario", "1000 Vario"],
+        "Valtra": ["A-series", "N-series", "T-series", "S-series"],
+        "JCB": ["Fastrac", "Loadall 531-70", "Loadall 535-95", "Loadall 541-70"],
+        "XTZ (ХТЗ)": ["T-150K", "T-150", "17221", "243К", "Т-25", "Т-40"],
+        "YTO": ["X804", "X904", "X1054", "X1204", "X1304"],
+        "Lovol (Foton)": ["244", "404", "504", "824", "1054", "1304"]
+      }
+    },
+    "🌱 Добрива, насіння та ЗЗР": {
+      "categories": [
+        "Насіння кукурудзи",
+        "Насіння соняшнику",
+        "Насіння ріпаку",
+        "Насіння озимої пшениці та ячменю",
+        "Насіння соєвих та бобових культур",
+        "Азотні мінеральні добрива",
+        "Фосфорно-калійні добрива",
+        "Комплексні добрива (NPK)",
+        "Мікродобрива та гумати",
+        "Гербіциди ґрунтові та страхові",
+        "Фунгіциди системні та контактні",
+        "Інсектициди та акарициди",
+        "Протруйники насіння",
+        "Десиканти, прилипачі та ад'юванти",
+        "Біопрепарати та регулятори росту"
+      ],
+      "brands": {
+        "Pioneer (Corteva Agriscience)": [
+          "Кукурудза (ФАО 150-450)",
+          "Соняшник (Класичний / Експрес / Сумо)",
+          "Ріпак озимий (Гібриди)"
+        ],
+        "Syngenta (Сингента)": [
+          "Кукурудза (НК / ФАО)",
+          "Соняшник (Оптимус / Суміко)",
+          "Гербіциди (Дуал Голд, Прінтедж)",
+          "Фунгіциди (Амістар, Світч)",
+          "Інсектициди (Карате Зеон, Актеллік)"
+        ],
+        "Limagrain (Лімагрейн)": [
+          "Кукурудза (LG)",
+          "Соняшник (ЛГ під євролайтнінг / експрес)",
+          "Озима пшениця"
+        ],
+        "Euralis / Lidea (Лідеа)": [
+          "Соняшник високоефективний",
+          "Кукурудза на зерно і силос",
+          "Сорго та соя"
+        ],
+        "KWS (КВС)": [
+          "Кукурудза зернова",
+          "Цукрові буряки",
+          "Зернові колосові"
+        ],
+        "Bayer CropScience (Байєр)": [
+          "Протруйники (Максім, Юнта)",
+          "Гербіциди (Аденго, Мастер Діджей)",
+          "Фунгіциди (Солігор, Зантара)",
+          "Інсектициди (Децис, Конфідор)"
+        ],
+        "BASF (Басф)": [
+          "Фунгіциди (Авітор, Рекс Дуо)",
+          "Гербіциди (Євро-Лайтнінг, Пульсар)",
+          "Регулятори росту (Антіглоб)"
+        ],
+        "Corteva / Dow / DuPont": [
+          "Гербіциди (Тітус, Прінтедж, Гезагард)",
+          "Інсектициди"
+        ],
+        "ADAMA (Адама)": [
+          "Комплексний захист зернових",
+          "Гербіциди та фунгіциди"
+        ],
+        "Nufarm (Нуфарм)": [
+          "ЗЗР загальної та спеціальної дії",
+          "Селективні гербіциди"
+        ],
+        "Укравіт (Україна)": [
+          "Гербіциди (Антисапа, Гліфовіт)",
+          "Фунгіциди та інсектициди",
+          "Мікродобрива (Авангард)"
+        ],
+        "Мінеральні добрива (Масові)": [
+          "Аміачна селітра (марка Б)",
+          "Карбамід",
+          "КАС-32 (Карбамідно-аміачна суміш)",
+          "Амофос (12:52)",
+          "Нітроамофоска (16:16:16 / 21:21:21)",
+          "Сульфат амонію",
+          "Калімаг / Калій хлористий"
+        ]
+      }
+    }
+  };
 }
