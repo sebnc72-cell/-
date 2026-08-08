@@ -737,6 +737,7 @@ class _AddPartPageState extends State<AddPartPage> {
                   decoration: const InputDecoration(labelText: 'Категорія', border: OutlineInputBorder(), suffixIcon: Icon(Icons.category)),
                   onChanged: (v) { _cat.text = v; },
                   onTap: () {
+                    // Очищаємо поле категорії при кліку для швидкого введення
                     if (widget.part == null && fieldController.text.isNotEmpty) {
                       fieldController.clear();
                       _cat.clear();
@@ -750,13 +751,40 @@ class _AddPartPageState extends State<AddPartPage> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: TextField(controller: _qty, decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                Expanded(
+                  child: TextField(
+                    controller: _qty, 
+                    decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder()), 
+                    keyboardType: TextInputType.number,
+                    onTap: () {
+                      if (_qty.text == '1' && widget.part == null) _qty.clear();
+                    },
+                  ),
+                ),
                 const SizedBox(width: 10),
-                Expanded(child: TextField(controller: _minQty, decoration: const InputDecoration(labelText: 'Мін. залишок', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                Expanded(
+                  child: TextField(
+                    controller: _minQty, 
+                    decoration: const InputDecoration(labelText: 'Мін. залишок', border: OutlineInputBorder()), 
+                    keyboardType: TextInputType.number,
+                    onTap: () {
+                      if (_minQty.text == '0' && widget.part == null) _minQty.clear();
+                    },
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            TextField(controller: _price, decoration: const InputDecoration(labelText: 'Ціна за одиницю (грн)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+            TextField(
+              controller: _price, 
+              decoration: const InputDecoration(labelText: 'Ціна за одиницю (грн)', border: OutlineInputBorder()), 
+              keyboardType: TextInputType.number,
+              onTap: () {
+                if (_price.text == '0' || _price.text == '0.0' || _price.text == '0.00') {
+                  _price.clear();
+                }
+              },
+            ),
             const SizedBox(height: 12),
             Autocomplete<String>(
               initialValue: TextEditingValue(text: _brand.text),
