@@ -284,6 +284,73 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// Сторінка редагування моделей конкретної марки
+class BrandModelsPage extends StatefulWidget {
+  final String brand;
+  const BrandModelsPage({super.key, required this.brand});
+
+  @override
+  State<BrandModelsPage> createState() => _BrandModelsPageState();
+}
+
+class _BrandModelsPageState extends State<BrandModelsPage> {
+  void _addModel() async {
+    final ctrl = TextEditingController();
+    final res = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('Додати модель для ${widget.brand}'),
+        content: TextField(controller: ctrl, decoration: const InputDecoration(labelText: 'Назва моделі')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: const Text('Додати')),
+        ],
+      ),
+    );
+    if (res != null && res.isNotEmpty) {
+      setState(() {
+        _modelsByBrand[widget.brand] ??= [];
+        if (!_modelsByBrand[widget.brand]!.contains(res)) {
+          _modelsByBrand[widget.brand]!.add(res);
+        }
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final models = _modelsByBrand[widget.brand] ?? [];
+    return Scaffold(
+      appBar: AppBar(title: Text('Моделі: ${widget.brand}')),
+      body: ListView.builder(
+        itemCount: models.length,
+        itemBuilder: (context, index) {
+          final model = models[index];
+          return ListTile(
+            title: Text(model),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              onPressed: () async {
+                setState(() {
+                  _modelsByBrand[widget.brand]!.removeAt(index);
+                });
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+              },
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addModel,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
 // Екран редагування довідників (Категорії та Марки)
 class EditDictionariesPage extends StatefulWidget {
   const EditDictionariesPage({super.key});
@@ -292,7 +359,24 @@ class EditDictionariesPage extends StatefulWidget {
   State<EditDictionariesPage> createState() => _EditDictionariesPageState();
 }
 
-class _EditDictionariesPageState extends State<EditDictionariesPage> {
+class _EditDictionariesPageState extends State<EditDictionariesPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   void _addCategory() async {
     final ctrl = TextEditingController();
     final res = await showDialog<String>(
@@ -341,68 +425,95 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Керування словниками'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Категорії'),
-              Tab(text: 'Марки техніки'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            ListView.builder(
-              itemCount: _categoriesList.length,
-              itemBuilder: (context, index) {
-                final cat = _categoriesList[index];
-                return ListTile(
-                  title: Text(cat),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    onPressed: () async {
-                      setState(() {
-                        _categoriesList.removeAt(index);
-                      });
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString('custom_categories', jsonEncode(_categoriesList));
-                    },
-                  ),
-                );
-              },
-            ),
-            ListView.builder(
-              itemCount: _modelsByBrand.keys.length,
-              itemBuilder: (context, index) {
-                String brand = _modelsByBrand.keys.elementAt(index);
-                return ListTile(
-                  title: Text(brand),
-                  subtitle: Text('Моделей: ${_modelsByBrand[brand]?.length ?? 0}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    onPressed: () async {
-                      setState(() {
-                        _modelsByBrand.remove(brand);
-                      });
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
-                    },
-                  ),
-                );
-              },
-            ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Керування словниками'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Категорії'),
+            Tab(text: 'Марки техніки'),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            // Можна додати категорію або бренд залежно від логіки
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Список категорій
+          ListView.builder(
+            itemCount: _categoriesList.length,
+            itemBuilder: (context, index) {
+              final cat = _categoriesList[index];
+              return ListTile(
+                title: Text(cat),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                  onPressed: () async {
+                    setState(() {
+                      _categoriesList.removeAt(index);
+                    });
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('custom_categories', jsonEncode(_categoriesList));
+                  },
+                ),
+              );
+            },
+          ),
+          // Список марок з переходом до моделей
+          ListView.builder(
+            itemCount: _modelsByBrand.keys.length,
+            itemBuilder: (context, index) {
+              String brand = _modelsByBrand.keys.elementAt(index);
+              return ListTile(
+                title: Text(brand),
+                subtitle: Text('Моделей: ${_modelsByBrand[brand]?.length ?? 0} (натисніть для редагування)'),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (c) => BrandModelsPage(brand: brand)),
+                  );
+                  setState(() {});
+                },
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (c) => BrandModelsPage(brand: brand)),
+                        );
+                        setState(() {});
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                      onPressed: () async {
+                        setState(() {
+                          _modelsByBrand.remove(brand);
+                        });
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('custom_brands', jsonEncode(_modelsByBrand));
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Якщо відкрита вкладка категорій (індекс 0), додаємо категорію. Якщо марок (індекс 1) — марку.
+          if (_tabController.index == 0) {
+            _addCategory();
+          } else {
             _addBrand();
-          },
-          child: const Icon(Icons.add),
-        ),
+          }
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -499,7 +610,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ListTile(
             leading: const Icon(Icons.edit_note, color: Colors.blueAccent),
             title: const Text('Редагувати категорії та марки техніки'),
-            subtitle: const Text('Додавайте власні категорії під аграрну чи іншу сферу'),
+            subtitle: const Text('Додавайте власні категорії та моделі під аграрну чи іншу сферу'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (c) => const EditDictionariesPage()));
