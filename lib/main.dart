@@ -15,15 +15,54 @@ List<String> _categoriesList = [
   'Мастила та рідини', 'Кузов та оптика', 'Інструменти та обладнання'
 ];
 
-// Початковий словник марок і моделей
+// Повний словник марок і моделей техніки
 Map<String, List<String>> _modelsByBrand = {
   'Alfa Romeo': ['145', '146', '147', '155', '156', '159', '164', '166', 'Giulietta', 'Giulia', 'Stelvio', 'MiTo', 'GT', 'Tonale'],
   'Audi': ['80', '90', '100', '200', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q4', 'Q5', 'Q7', 'Q8', 'TT', 'R8', 'RS3', 'RS4', 'RS6'],
   'BMW': ['E30', 'E32', 'E34', 'E36', 'E38', 'E39', 'E46', 'E60', 'E63', 'E65', 'E81', 'E82', 'E83', 'E84', 'E87', 'E90', 'E91', 'E92', 'E93', 'F10', 'F11', 'F15', 'F20', 'F25', 'F30', 'F31', 'G01', 'G05', 'G20', 'G30', 'G07', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7'],
   'Case IH': ['Puma', 'Magnum', 'Maxxum', 'Optum', 'Steiger', 'Farmall', 'Quantum', 'Vestrum'],
   'Caterpillar': ['312', '315', '320', '323', '325', '330', '422', '428', '432', '434', 'D5', 'D6', 'D7', 'D8', '950', '966'],
+  'Chevrolet': ['Aveo', 'Lacetti', 'Niva', 'Cruze', 'Epica', 'Tacuma', 'Captiva', 'Volt', 'Spark', 'Malibu', 'Orlando', 'Tahoe'],
+  'Chrysler': ['Voyager', 'Grand Voyager', 'PT Cruiser', '300C', 'Sebring', 'Pacifica', 'Crossfire'],
+  'Citroën': ['Berlingo', 'Jumper', 'Jumpy', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C8', 'Xsara', 'C-Elysee', 'Nemo', 'Saxo', 'Xantia', 'ZX'],
+  'CLAAS': ['Lexion', 'Mega', 'Tucano', 'Axion', 'Arion', 'Atos', 'Dominator', 'Medion'],
+  'Dacia': ['Logan', 'Duster', 'Sandero', 'Dokker', 'Lodgy', 'Spring', 'Solenza'],
+  'DAF': ['XF 95', 'XF 105', 'XF 106', 'CF 65', 'CF 75', 'CF 85', 'LF 45', 'LF 55', 'XG', 'XG+'],
+  'Dodge': ['Caliber', 'Journey', 'RAM 1500', 'RAM 2500', 'Nitro', 'Charger', 'Challenger', 'Dart', 'Grand Caravan'],
+  'Fiat': ['Doblo', 'Ducato', 'Fiorino', 'Scudo', 'Punto', 'Tipo', 'Bravo', 'Linea', 'Freemont', 'Uno', 'Stilo', 'Multipla', 'Palio', 'Croma'],
+  'Ford': ['Transit', 'Tourneo', 'Focus', 'Mondeo', 'Fiesta', 'Connect', 'Kuga', 'Fusion', 'Cargo', 'Edge', 'Explorer', 'Escort', 'Sierra', 'Scorpio', 'Ka', 'C-Max', 'S-Max', 'Ranger'],
+  'GAZ (ГАЗ)': ['3302 (Газель)', '3221 (Соболь)', '2705', '53', '66', '3307', 'Волга 3110', 'Волга 31105', 'Валдай', 'Next'],
+  'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Jazz', 'Pilot', 'Legend', 'Prelude', 'Logo', 'FR-V'],
+  'Hyundai': ['Accent', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'H-1', 'i10', 'i20', 'i30', 'i40', 'Matrix', 'Terracan', 'Galloper', 'Getz', 'Coupe'],
+  'IVECO': ['Daily', 'Stralis', 'Eurocargo', 'Trakker', 'S-Way', 'EuroStar', 'EuroTech'],
+  'JCB': ['3CX', '4CX', 'Fastrac', 'Teletruk', '531-70', '535-95', '8018', 'JS200'],
+  'Jeep': ['Grand Cherokee', 'Cherokee', 'Renegade', 'Wrangler', 'Compass', 'Patriot', 'Commander'],
+  'John Deere': ['6000 series', '7000 series', '8000 series', '9000 series', 'S-Series', '5E', '6M', '7R', '8R'],
+  'KAMAZ (КАМАЗ)': ['5320', '65115', '5490', '4310', '5511', '6520', '5410', '53212'],
+  'Kia': ['Ceed', 'Sportage', 'Sorento', 'Rio', 'Cerato', 'Magentis', 'Soul', 'Optima', 'Carnival', 'Picanto', 'Venga', 'Carens', 'Stinger'],
+  'Lada / ВАЗ': ['2101', '2102', '2103', '2104', '2105', '2106', '2107', '2108', '2109', '21099', '2110', '2111', '2112', 'Priora', 'Kalina', 'Granta', 'Niva 4x4', 'Vesta', 'Largus'],
+  'Land Rover': ['Defender', 'Discovery 1', 'Discovery 2', 'Discovery 3', 'Discovery 4', 'Discovery 5', 'Range Rover', 'Freelander', 'Velar', 'Evoque'],
+  'Lexus': ['RX 300', 'RX 330', 'RX 350', 'LX 470', 'LX 570', 'GS 300', 'IS 200', 'IS 250', 'NX 200', 'ES 300', 'ES 350', 'LS 430'],
+  'MAN': ['TGA', 'TGS', 'TGX', 'F2000', 'LE', 'TGM', 'TGL', 'Commander'],
+  'MAZ (МАЗ)': ['5440', '6430', '5551', '4370 (Зубренок)', '103', '5432', '5516'],
+  'Mazda': ['2', '3', '5', '6', 'Demio', 'Premacy', 'BT-50', 'CX-3', 'CX-5', 'CX-7', 'CX-9', 'Tribute', '323', '626', 'MPV'],
+  'Mercedes-Benz': ['Sprinter', 'Vito', 'Viano', 'Atego', 'Actros', 'W124', 'W210', 'W202', 'W203', 'W211', 'W220', 'W212', 'GL', 'ML', 'A-Class', 'C-Class', 'E-Class', 'S-Class', 'G-Class', 'CLA', 'CLS', 'GLA', 'GLE', 'GLC'],
+  'Mitsubishi': ['L200', 'Pajero', 'Pajero Sport', 'Outlander', 'Colt', 'Lancer', 'Galant', 'ASX', 'Grandis', 'Carisma', 'Space Star', 'Eclipse Cross'],
   'MTZ (МТЗ)': ['80', '82', '82.1', '892', '1025', '1221', '1523', '3022', '920', '952', '1021'],
-  'Opel': ['Zafira A', 'Zafira B', 'Zafira C', 'Astra F', 'Astra G', 'Astra H', 'Astra J', 'Vectra A', 'Vectra B', 'Vectra C', 'Insignia', 'Combo', 'Vivaro', 'Movano'],
+  'New Holland': ['T7', 'T8', 'T9', 'CR', 'CX', 'T5', 'T6', 'TC'],
+  'Nissan': ['Navara', 'Patrol', 'Qashqai', 'X-Trail', 'Primastar', 'Interstar', 'Almera', 'Maxima', 'Note', 'Juke', 'Leaf', 'Tiida', 'Micra', 'Pathfinder', 'Terrano', 'Primera'],
+  'Opel': ['Zafira A', 'Zafira B', 'Zafira C', 'Astra F', 'Astra G', 'Astra H', 'Astra J', 'Vectra A', 'Vectra B', 'Vectra C', 'Insignia', 'Combo', 'Vivaro', 'Movano', 'Omega A', 'Omega B', 'Corsa B', 'Corsa C', 'Corsa D', 'Meriva A', 'Meriva B', 'Agila', 'Frontera'],
+  'Peugeot': ['Partner', 'Boxer', 'Expert', '308', '406', '407', '207', '3008', '508', '206', '107', '208', '408', '5008'],
+  'Renault': ['Kangoo', 'Master', 'Trafic', 'Megane', 'Logan', 'Scenic', 'Premium', 'Magnum', 'Duster', 'Symbol', 'Fluence', 'Koleos', 'Laguna', 'Espace', 'Clio', 'Modus'],
+  'Scania': ['R-series', 'G-series', 'P-series', 'Streamline', 'Next Gen', 'S-series', '114', '124'],
+  'Skoda': ['Octavia A4', 'Octavia A5', 'Octavia A7', 'Fabia', 'Superb', 'Rapid', 'Yeti', 'Kodiaq', 'Karoq', 'Roomster', 'Felicia', 'Citigo'],
+  'Subaru': ['Forester', 'Outback', 'Impreza', 'Legacy', 'Tribeca', 'XV', 'Crosstrek', 'B9', 'Justy'],
+  'Suzuki': ['Grand Vitara', 'Vitara', 'SX4', 'Jimny', 'Swift', 'Baleno', 'Ignis', 'Liana'],
+  'Toyota': ['Land Cruiser 80', 'Land Cruiser 100', 'Land Cruiser 200', 'Land Cruiser 300', 'Prado 90', 'Prado 120', 'Prado 150', 'Hilux', 'Corolla', 'Camry', 'Hiace', 'Avensis', 'RAV4', 'Yaris', 'Auris', 'Prius', 'Celica', 'Carina'],
+  'Volkswagen': ['Transporter T4', 'Transporter T5', 'Transporter T6', 'Caddy', 'Crafter', 'Golf 2', 'Golf 3', 'Golf 4', 'Golf 5', 'Golf 6', 'Golf 7', 'Passat B3', 'Passat B4', 'Passat B5', 'Passat B6', 'Passat B7', 'Passat B8', 'LT', 'Touareg', 'Tiguan', 'Polo', 'Jetta', 'Bora', 'Sharan', 'Touran'],
+  'Volvo': ['FH12', 'FH16', 'FM', 'XC60', 'XC90', 'S60', 'S80', 'V70', 'S40', 'V40', 'XC70'],
+  'XTZ (ХТЗ)': ['T-150K', 'T-150', 'XZ-1613', '243К', '17221'],
+  'ZAZ (ЗАЗ)': ['Sens', 'Slavuta', 'Tavria', 'Forza', 'Vida', '968', '1102', '1103']
 };
 
 // Налаштування додатку
@@ -36,7 +75,7 @@ void main() async {
   runApp(const MyApp());
 }
 
-// Завантаження кастомних списків із пам'яті
+// Завантаження кастомних списків із пам'яті (якщо користувач щось міняв — підтягнеться воно, якщо ні — завантажиться повна база)
 Future<void> _loadCustomDictionaries() async {
   final prefs = await SharedPreferences.getInstance();
   
@@ -466,7 +505,7 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
               String brand = _modelsByBrand.keys.elementAt(index);
               return ListTile(
                 title: Text(brand),
-                subtitle: Text('Моделей: ${_modelsByBrand[brand]?.length ?? 0} (натисніть для редагування)'),
+                subtitle: Text('Моделей: ${_modelsByBrand[brand]?.length ?? 0} (натисніть для редагування моделей)'),
                 onTap: () async {
                   await Navigator.push(
                     context,
@@ -506,7 +545,6 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Якщо відкрита вкладка категорій (індекс 0), додаємо категорію. Якщо марок (індекс 1) — марку.
           if (_tabController.index == 0) {
             _addCategory();
           } else {
