@@ -65,7 +65,6 @@ Map<String, List<String>> _modelsByBrand = {
   'ZAZ (ЗАЗ)': ['Sens', 'Slavuta', 'Tavria', 'Forza', 'Vida', '968', '1102', '1103']
 };
 
-// Налаштування додатку
 bool showTotalSum = true;
 ThemeMode currentThemeMode = ThemeMode.dark;
 
@@ -75,10 +74,8 @@ void main() async {
   runApp(const MyApp());
 }
 
-// Завантаження кастомних списків із пам'яті (якщо користувач щось міняв — підтягнеться воно, якщо ні — завантажиться повна база)
 Future<void> _loadCustomDictionaries() async {
   final prefs = await SharedPreferences.getInstance();
-  
   showTotalSum = prefs.getBool('showTotalSum') ?? true;
   
   final savedCategories = prefs.getString('custom_categories');
@@ -390,7 +387,6 @@ class _BrandModelsPageState extends State<BrandModelsPage> {
   }
 }
 
-// Екран редагування довідників (Категорії та Марки)
 class EditDictionariesPage extends StatefulWidget {
   const EditDictionariesPage({super.key});
 
@@ -431,7 +427,7 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
     );
     if (res != null && res.isNotEmpty) {
       setState(() {
-        _categoriesList.add(res);
+        if (!_categoriesList.contains(res)) _categoriesList.add(res);
       });
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('custom_categories', jsonEncode(_categoriesList));
@@ -478,7 +474,6 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Список категорій
           ListView.builder(
             itemCount: _categoriesList.length,
             itemBuilder: (context, index) {
@@ -498,7 +493,6 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
               );
             },
           ),
-          // Список марок з переходом до моделей
           ListView.builder(
             itemCount: _modelsByBrand.keys.length,
             itemBuilder: (context, index) {
@@ -557,7 +551,6 @@ class _EditDictionariesPageState extends State<EditDictionariesPage> with Single
   }
 }
 
-// Редагований профіль
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -814,8 +807,8 @@ class _AddPartPageState extends State<AddPartPage> {
   late final TextEditingController _brandCtrl;
   late final TextEditingController _modelCtrl;
   late final TextEditingController _yearCtrl;
+  late final TextEditingController _categoryCtrl; // Додано контролер для категорії
   
-  String _selectedCategory = 'Загальне';
   List<String> _existingPartNames = [];
 
   @override
@@ -823,13 +816,20 @@ class _AddPartPageState extends State<AddPartPage> {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.part?['name'] ?? '');
     _art = TextEditingController(text: widget.part?['article'] ?? '');
-    _qty = TextEditingController(text: (widget.part?['quantity'] ?? 1).toString());
-    _minQty = TextEditingController(text: (widget.part?['minQuantity'] ?? 0).toString());
-    _price = TextEditingController(text: (widget.part?['price'] ?? 0).toString());
+    
+    // Якщо створюємо нову запчастину, ставимо порожні поля або '1', щоб не видаляти нуль вручну
+    final qtyVal = widget.part != null ? (widget.part?['quantity'] ?? 1).toString() : '1';
+    final minQtyVal = widget.part != null ? (widget.part?['minQuantity'] ?? 0).toString() : '0';
+    final priceVal = widget.part != null ? (widget.part?['price'] ?? 0).toString() : '';
+
+    _qty = TextEditingController(text: qtyVal);
+    _minQty = TextEditingController(text: minQtyVal);
+    _price = TextEditingController(text: priceVal);
+    
     _brandCtrl = TextEditingController(text: widget.part?['brand'] ?? '');
     _modelCtrl = TextEditingController(text: widget.part?['carModel'] ?? '');
     _yearCtrl = TextEditingController(text: widget.part?['carYear'] ?? '');
-    _selectedCategory = widget.part?['category'] ?? (_categoriesList.isNotEmpty ? _categoriesList.first : 'Загальне');
+    _categoryCtrl = TextEditingController(text: widget.part?['category'] ?? (_categoriesList.isNotEmpty ? _categoriesList.first : 'Загальне'));
 
     _loadExistingPartNames();
   }
@@ -844,6 +844,7 @@ class _AddPartPageState extends State<AddPartPage> {
     _brandCtrl.dispose();
     _modelCtrl.dispose();
     _yearCtrl.dispose();
+    _categoryCtrl.dispose();
     super.dispose();
   }
 
@@ -896,12 +897,32 @@ class _AddPartPageState extends State<AddPartPage> {
             ),
             const SizedBox(height: 12),
 
-            DropdownButtonFormField<String>(
-              value: _categoriesList.contains(_selectedCategory) ? _selectedCategory : (_categoriesList.isNotEmpty ? _categoriesList.first : null),
-              decoration: const InputDecoration(labelText: 'Категорія (вузол)', border: OutlineInputBorder()),
-              items: _categoriesList.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedCategory = val);
+            // Вільно редагована категорія (Autocomplete з підтримкою власних варіантів)
+            Autocomplete<String>(
+              initialValue: TextEditingValue(text: _categoryCtrl.text),
+              optionsBuilder: (TextEditingValue v) {
+                if (v.text.isEmpty) return _categoriesList;
+                return _categoriesList.where((cat) => cat.toLowerCase().contains(v.text.toLowerCase()));
+              },
+              onSelected: (String s) {
+                _categoryCtrl.text = s;
+              },
+              fieldViewBuilder: (BuildContext context, TextEditingController fieldController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
+                if (fieldController.text != _categoryCtrl.text && fieldController.text.isEmpty) {
+                  fieldController.text = _categoryCtrl.text;
+                }
+                return TextField(
+                  controller: fieldController,
+                  focusNode: fieldFocusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Категорія (виберіть або впишіть свою)',
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.category),
+                  ),
+                  onChanged: (v) {
+                    _categoryCtrl.text = v;
+                  },
+                );
               },
             ),
             const SizedBox(height: 12),
@@ -911,14 +932,36 @@ class _AddPartPageState extends State<AddPartPage> {
 
             Row(
               children: [
-                Expanded(child: TextField(controller: _qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder()))),
+                Expanded(
+                  child: TextField(
+                    controller: _qty, 
+                    keyboardType: TextInputType.number, 
+                    decoration: const InputDecoration(labelText: 'Кількість', border: OutlineInputBorder()),
+                    onTap: () {
+                      if (_qty.text == '1' && widget.part == null) _qty.selection = TextSelection(baseOffset: 0, extentOffset: _qty.text.length);
+                    },
+                  ),
+                ),
                 const SizedBox(width: 10),
-                Expanded(child: TextField(controller: _minQty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Мін. залишок', border: OutlineInputBorder()))),
+                Expanded(
+                  child: TextField(
+                    controller: _minQty, 
+                    keyboardType: TextInputType.number, 
+                    decoration: const InputDecoration(labelText: 'Мін. залишок', border: OutlineInputBorder()),
+                    onTap: () {
+                      if (_minQty.text == '0' && widget.part == null) _minQty.selection = TextSelection(baseOffset: 0, extentOffset: _minQty.text.length);
+                    },
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
 
-            TextField(controller: _price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Ціна за одиницю (грн)', border: OutlineInputBorder())),
+            TextField(
+              controller: _price, 
+              keyboardType: TextInputType.number, 
+              decoration: const InputDecoration(labelText: 'Ціна за одиницю (грн)', border: OutlineInputBorder()),
+            ),
             const SizedBox(height: 12),
             
             Autocomplete<String>(
@@ -987,7 +1030,7 @@ class _AddPartPageState extends State<AddPartPage> {
                 }
                 final data = {
                   'name': _nameCtrl.text.trim(),
-                  'category': _selectedCategory,
+                  'category': _categoryCtrl.text.trim().isNotEmpty ? _categoryCtrl.text.trim() : 'Загальне',
                   'article': _art.text.trim(),
                   'quantity': int.tryParse(_qty.text.trim()) ?? 1,
                   'minQuantity': int.tryParse(_minQty.text.trim()) ?? 0,
