@@ -614,6 +614,24 @@ class BackupPage extends StatelessWidget {
     }
   }
 
+  Future<void> _exportToExcel(BuildContext context) async {
+    try {
+      final parts = await DatabaseHelper.instance.fetchParts();
+      StringBuffer csvContent = StringBuffer();
+      csvContent.writeln('Назва,Категорія,Артикул,Кількість,Мін.залишок,Ціна(грн),Бренд,Модель,Рік');
+      for (var p in parts) {
+        csvContent.writeln('"${p['name']}","${p['category']}","${p['article']}","${p['quantity']}","${p['minQuantity']}","${p['price']}","${p['brand']}","${p['carModel']}","${p['carYear']}"');
+      }
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/sklad_zapchastyn.csv';
+      final file = File(path);
+      await file.writeAsString(csvContent.toString());
+      await Share.shareXFiles([XFile(path)], text: 'Звіт складу у форматі Excel (CSV)');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка вивантаження в Excel: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -625,7 +643,9 @@ class BackupPage extends StatelessWidget {
           children: [
             ElevatedButton.icon(icon: const Icon(Icons.share), label: const Text('Поділитися базою даних'), onPressed: () => _exportDatabase(context)),
             const SizedBox(height: 15),
-            ElevatedButton.icon(icon: const Icon(Icons.download), label: const Text('Відновити з файлу'), onPressed: () => _importDatabase(context)),
+            ElevatedButton.icon(icon: const Icon(Icons.download, color: Colors.amberAccent), label: const Text('Відновити з файлу (Імпорт)'), onPressed: () => _importDatabase(context)),
+            const SizedBox(height: 30),
+            ElevatedButton.icon(icon: const Icon(Icons.table_chart, color: Colors.greenAccent), label: const Text('Експортувати в Excel (CSV)'), onPressed: () => _exportToExcel(context)),
           ],
         ),
       ),
@@ -644,13 +664,31 @@ class AddPartPage extends StatefulWidget {
 class _AddPartPageState extends State<AddPartPage> {
   late final TextEditingController _name = TextEditingController(text: widget.part?['name'] ?? '');
   late final TextEditingController _art = TextEditingController(text: widget.part?['article'] ?? '');
-  late final TextEditingController _qty = TextEditingController(text: widget.part != null ? (widget.part?['quantity'] ?? 1).toString() : '');
-  late final TextEditingController _minQty = TextEditingController(text: widget.part != null ? (widget.part?['minQuantity'] ?? 0).toString() : '');
+  late final TextEditingController _qty = TextEditingController(text: widget.part != null ? (widget.part?['quantity'] ?? 1).toString() : '1');
+  late final TextEditingController _minQty = TextEditingController(text: widget.part != null ? (widget.part?['minQuantity'] ?? 0).toString() : '0');
   late final TextEditingController _price = TextEditingController(text: widget.part != null ? (widget.part?['price'] ?? '').toString() : '');
   late final TextEditingController _brand = TextEditingController(text: widget.part?['brand'] ?? '');
   late final TextEditingController _model = TextEditingController(text: widget.part?['carModel'] ?? '');
   late final TextEditingController _year = TextEditingController(text: widget.part?['carYear'] ?? '');
   late final TextEditingController _cat = TextEditingController(text: widget.part?['category'] ?? '');
+
+  List<String> _existingPartNames = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingPartNames();
+  }
+
+  void _loadExistingPartNames() async {
+    final parts = await DatabaseHelper.instance.fetchParts();
+    final names = parts.map((p) => p['name'].toString()).toSet().toList();
+    if (mounted) {
+      setState(() {
+        _existingPartNames = names;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -662,7 +700,25 @@ class _AddPartPageState extends State<AddPartPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Назва товару', border: OutlineInputBorder())),
+            Autocomplete<String>(
+              initialValue: TextEditingValue(text: _name.text),
+              optionsBuilder: (TextEditingValue v) {
+                if (v.text.isEmpty) return _existingPartNames;
+                return _existingPartNames.where((n) => n.toLowerCase().contains(v.text.toLowerCase()));
+              },
+              onSelected: (String s) { _name.text = s; },
+              fieldViewBuilder: (context, fieldController, fieldFocusNode, onFieldSubmitted) {
+                if (fieldController.text != _name.text && fieldController.text.isEmpty) {
+                  fieldController.text = _name.text;
+                }
+                return TextField(
+                  controller: fieldController,
+                  focusNode: fieldFocusNode,
+                  decoration: const InputDecoration(labelText: 'Назва товару', border: OutlineInputBorder(), suffixIcon: Icon(Icons.history)),
+                  onChanged: (v) { _name.text = v; },
+                );
+              },
+            ),
             const SizedBox(height: 12),
             Autocomplete<String>(
               initialValue: TextEditingValue(text: _cat.text),
