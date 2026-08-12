@@ -379,13 +379,24 @@ class _HomePageState extends State<HomePage> {
                 final brand = p['brand'] ?? '';
                 final model = p['carModel'] ?? '';
                 final details = [brand, model].where((e) => e.isNotEmpty).join(' ');
+                final article = p['article'] ?? '';
+
+                // Формуємо акуратний підзаголовок із виведенням артикула
+                String subtitleText = 'Категорія: ${p['category']}';
+                if (article.isNotEmpty) {
+                  subtitleText += ' | Арт: $article';
+                }
+                if (details.isNotEmpty) {
+                  subtitleText += '\nОб’єкт: $details';
+                }
+                subtitleText += '\nК-сть: ${p['quantity']} | Ціна: ${p['price']} грн';
 
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: ListTile(
                     leading: const Icon(Icons.warehouse, color: Colors.blueAccent),
                     title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Категорія: ${p['category']}\nОб’єкт: $details | К-сть: ${p['quantity']} | Ціна: ${p['price']} грн'),
+                    subtitle: Text(subtitleText),
                     isThreeLine: true,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => AddPartPage(part: p))).then((_) => _refresh()),
                   ),
